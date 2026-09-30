@@ -1,0 +1,63 @@
+diff --git a/dist/aiden0z-pptx-renderer.es.js b/dist/aiden0z-pptx-renderer.es.js
+index 6de7e508a1674c2ff54cb7ea1341e474a9fc7497..533abd4466ef1a98597f49dd5515eeb9b45258fa 100644
+--- a/dist/aiden0z-pptx-renderer.es.js
++++ b/dist/aiden0z-pptx-renderer.es.js
+@@ -15304,9 +15304,26 @@ function Rg(t, e) {
+     m,
+     void 0
+   )), x && a && (t.flipH || t.flipV) && (x = Ap(x, p, m, t.flipH, t.flipV));
+-  const b = t.source.child("spPr");
+-  let M = "", A = t.fill ? Qc(b, e) : null;
+-  if (t.fill && t.fill.exists()) {
++  // OOXML useBgFill overrides both explicit shape fills and style fillRef.
++  const useBgFill = xe(t.source.attr("useBgFill"));
++  const background = useBgFill ? e.slide.background ?? e.layout.background ?? e.master.background : void 0;
++  const b = useBgFill ? background?.child("bgPr") ?? new Ne(null) : t.source.child("spPr");
++  const fillContext = useBgFill && b.child("blipFill").exists()
++    ? { ...e, slide: { ...e.slide, rels: e.slide.background ? e.slide.rels : e.layout.background ? e.layout.rels : e.master.rels } }
++    : e;
++  let M = useBgFill ? In(b, e) : "", A = useBgFill || t.fill ? Qc(b, e) : null;
++  if (useBgFill && (!b.exists() || b.child("noFill").exists())) {
++    const ref = background?.child("bgRef");
++    if (ref?.exists()) {
++      const fill = Vf(ref, e);
++      M = fill.fillCss;
++      A = fill.gradientFillData;
++    } else {
++      M = "#FFFFFF";
++      A = null;
++    }
++  }
++  if (!useBgFill && t.fill && t.fill.exists()) {
+     if (t.fill.localName === "solidFill") {
+       const N = t.fill.child("srgbClr").exists() ? t.fill.child("srgbClr") : t.fill.child("schemeClr").exists() ? t.fill.child("schemeClr") : t.fill.child("scrgbClr").exists() ? t.fill.child("scrgbClr") : t.fill.child("sysClr").exists() ? t.fill.child("sysClr") : void 0;
+       N != null && N.exists() && (M = Re(N, e));
+@@ -15320,7 +15337,7 @@ function Rg(t, e) {
+       O != null && O.exists() && (M = Re(O, e));
+     }
+   }
+-  if (!M && $ && $.exists() && ($.numAttr("idx") ?? 0) > 0) {
++  if (!useBgFill && !M && $ && $.exists() && ($.numAttr("idx") ?? 0) > 0) {
+     const N = gs($, e);
+     M = N.fillCss, A || (A = N.gradientFillData);
+   }
+@@ -15347,7 +15364,7 @@ function Rg(t, e) {
+   if (x) {
+     const N = "http://www.w3.org/2000/svg", O = document.createElementNS(N, "svg"), pt = a ? d : h, rt = a ? c : f;
+     O.setAttribute("viewBox", `0 0 ${pt} ${rt}`), O.setAttribute("width", String(pt)), O.setAttribute("height", String(rt)), O.style.position = "absolute", O.style.left = "0", O.style.top = "0", O.style.overflow = "visible", W = O;
+-    const Xt = b.child("blipFill"), Ut = Xt.exists() ? Qm(Xt, e) : null;
++    const Xt = b.child("blipFill"), Ut = Xt.exists() ? Qm(Xt, fillContext) : null;
+     if (Ut) {
+       const Mt = document.createElementNS(N, "defs");
+       if (va(N, O, Mt, Xt, x, { w: pt, h: rt }, Ut), S && S.length > 1 && v) {
+@@ -15573,7 +15590,7 @@ function Rg(t, e) {
+         }
+       }
+       if (mt.__rectBlendGroup && (O.appendChild(mt.__rectBlendGroup), delete mt.__rectBlendGroup), O.appendChild(mt), Xt.exists() && e.presentation.mediaResolver) {
+-        const at = Jm(Xt, e).then((wt) => {
++        const at = Jm(Xt, fillContext).then((wt) => {
+           wt && va(
+             N,
+             O,
+             Mt,
+             Xt,
