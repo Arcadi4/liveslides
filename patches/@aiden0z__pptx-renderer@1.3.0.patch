@@ -61,3 +61,13 @@ index 6de7e508a1674c2ff54cb7ea1341e474a9fc7497..533abd4466ef1a98597f49dd5515eeb9
              O,
              Mt,
              Xt,
+@@ -15853,7 +15870,8 @@ function Rg(t, e) {
+           let an = fn, cn = Oe;
+           const _e = me > 0 && fn <= me + Tr, Zn = wt ? Hm : _m, He = Yt > 0 && (Oe <= Yt || !Ie && _e && Oe <= Yt * Zn), mi = me > 0 && Yt > 0 && _e && He, Sn = rt && !Ut && !Ie && _e && He && Oe > Yt && Yt > 0, ge = Ve && _e && Oe > Yt && Yt > 0, Mn = !de && !$e && !mi && (!_e || !He || wt || Ve || Se || Vt);
+           let pn = !1;
+-          Mn && (O.style.whiteSpace = "nowrap", an = O.scrollWidth, cn = O.scrollHeight, pn = !0, O.style.whiteSpace = qe), O.style.justifyContent = Be, Ue || (n.parentNode === oe && oe.removeChild(n), n.style.visibility = Ge);
++          // Wrapped normAutofit fits paragraph height, not the width of an unwrapped paragraph.
++          Mn && (!Ut || yt === "none") && (O.style.whiteSpace = "nowrap", an = O.scrollWidth, cn = O.scrollHeight, pn = !0, O.style.whiteSpace = qe), O.style.justifyContent = Be, Ue || (n.parentNode === oe && oe.removeChild(n), n.style.visibility = Ge);
+           const gi = pn && an > 0 ? me / an : 1;
+           if (fe && !mi && (ya(H) > 1 || pn && (cn <= Yt || Rm(H)) && gi < ba)) {
+             const tn = yt === "none" ? Math.max(d, an) : Math.max(d, me), An = Math.max(c, Oe);
