@@ -1,9 +1,14 @@
 {
   "compilerOptions": {
     "noEmit": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "esModuleInterop": true
-  }
+  },
+  "files": [],
+  "references": [
+    { "path": "./apps/website/tsconfig.json" },
+    { "path": "./apps/website/tsconfig.worker.json" }
+  ]
 }
