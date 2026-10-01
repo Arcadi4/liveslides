@@ -98,8 +98,10 @@ export async function loadDeck(link: RoomLink, signal?: AbortSignal): Promise<Pr
     atob(link.secret.replaceAll("-", "+").replaceAll("_", "/") + "=="),
     (char) => char.charCodeAt(0),
   );
-  const key = await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]);
-  const response = await fetch(`/api/rooms/${link.roomId}/file`, { signal });
+  const [key, response] = await Promise.all([
+    crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]),
+    fetch(`/api/rooms/${link.roomId}/file`, { signal }),
+  ]);
   if (!response.ok)
     throw new Error(
       response.status === 404
