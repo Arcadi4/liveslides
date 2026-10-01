@@ -1,3 +1,7 @@
+# opened pr to ship the identical fix to upstream
+# https://github.com/aiden0z/pptx-renderer/pull/34
+# https://github.com/aiden0z/pptx-renderer/pull/35
+
 diff --git a/dist/aiden0z-pptx-renderer.es.js b/dist/aiden0z-pptx-renderer.es.js
 index 6de7e508a1674c2ff54cb7ea1341e474a9fc7497..533abd4466ef1a98597f49dd5515eeb9b45258fa 100644
 --- a/dist/aiden0z-pptx-renderer.es.js
