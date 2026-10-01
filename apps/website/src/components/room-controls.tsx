@@ -1,16 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Link2Icon,
-  LogOutIcon,
-  Maximize2Icon,
-  Minimize2Icon,
-  TimerIcon,
-  UnlinkIcon,
-  UsersIcon,
-} from "lucide-react";
-import type { Participant } from "@/protocol";
+import { ShareDialog } from "@/components/share-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,9 +13,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ShareDialog } from "@/components/share-dialog";
-import type { RoomLink } from "@/protocol";
 import { cn } from "@/lib/utils";
+import type { Participant, RoomLink } from "@/protocol";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Link2Icon,
+  LogOutIcon,
+  Maximize2Icon,
+  Minimize2Icon,
+  TimerIcon,
+  UnlinkIcon,
+  UsersIcon,
+} from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type Status = "connecting" | "connected" | "reconnecting" | "offline";
 
@@ -198,10 +197,7 @@ export function RoomControls({
               </Badge>
             </span>
           </TooltipTrigger>
-          <TooltipContent>
-            Every link stops working after {deadline}. The stored file is deleted after that, and
-            anyone who already downloaded the deck keeps their own copy.
-          </TooltipContent>
+          <TooltipContent>The room expires at this time</TooltipContent>
         </Tooltip>
       )}
 

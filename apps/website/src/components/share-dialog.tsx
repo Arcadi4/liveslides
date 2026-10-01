@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +10,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { roomUrl } from "@/links";
 import type { RoomLink } from "@/protocol";
+import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface LinkRowProps {
   id: string;
@@ -97,10 +97,7 @@ export function ShareDialog({ link, deadline }: ShareDialogProps) {
 
           {deadline && (
             <p className="text-xs text-muted-foreground">
-              Both links stop working on {deadline}, and reopening either one then shows the
-              presentation as expired. The stored file is queued for deletion right after, which can
-              take a little longer if the deletion service fails — anyone who already downloaded the
-              deck keeps their own copy.
+              Both links will stop working at {deadline}.
             </p>
           )}
         </div>
