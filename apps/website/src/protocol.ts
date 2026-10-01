@@ -1,8 +1,11 @@
 export const MAX_FILE_BYTES = 50 * 1024 * 1024;
+export const MAX_TTL_SECONDS = 30 * 24 * 60 * 60;
+export const ROOM_EXPIRED_CLOSE_CODE = 4001;
 
 export interface RoomMetadata {
   name: string;
   slideCount: number;
+  expiresAt: number;
 }
 
 export interface Participant {

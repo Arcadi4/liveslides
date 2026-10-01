@@ -59,9 +59,11 @@ function LinkRow({ id, label, hint, url }: LinkRowProps) {
 
 interface ShareDialogProps {
   link: RoomLink;
+  /** Formatted deadline of the room this link opens, or null while it is unknown. */
+  deadline: string | null;
 }
 
-export function ShareDialog({ link }: ShareDialogProps) {
+export function ShareDialog({ link, deadline }: ShareDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -91,6 +93,15 @@ export function ShareDialog({ link }: ShareDialogProps) {
               hint="Hosts start out attached and can advance the shared slide."
               url={roomUrl(link)}
             />
+          )}
+
+          {deadline && (
+            <p className="text-xs text-muted-foreground">
+              Both links stop working on {deadline}, and reopening either one then shows the
+              presentation as expired. The stored file is queued for deletion right after, which can
+              take a little longer if the deletion service fails — anyone who already downloaded the
+              deck keeps their own copy.
+            </p>
           )}
         </div>
       </DialogContent>

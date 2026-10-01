@@ -59,6 +59,8 @@ function LiveSlides() {
   const [name, setName] = useState<string | null>(null);
   const [deck, setDeck] = useState<PreparedDeck["presentation"] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [expired, setExpired] = useState(false);
   const enteredFromShare = useRef(false);
 
   useEffect(() => {
@@ -66,6 +68,8 @@ function LiveSlides() {
       enteredFromShare.current = false;
       setLink(readRoomLink());
       setName(null);
+      setExpiresAt(null);
+      setExpired(false);
       setDeck(null);
     };
     window.addEventListener("popstate", onPopState);
@@ -73,7 +77,7 @@ function LiveSlides() {
   }, []);
 
   useEffect(() => {
-    if (!link || !name || deck) return;
+    if (!link || !name || deck || expired) return;
     const controller = new AbortController();
     setLoadError(null);
     loadDeck(link, controller.signal)
@@ -86,15 +90,28 @@ function LiveSlides() {
         }
       });
     return () => controller.abort();
-  }, [link, name, deck]);
+  }, [link, name, deck, expired]);
 
-  const onShared = ({ link: shared, presentation, name: hostName }: SharedDeck) => {
+  const onShared = ({
+    link: shared,
+    expiresAt: deadline,
+    presentation,
+    name: hostName,
+  }: SharedDeck) => {
     history.pushState(null, "", roomUrl(shared));
     enteredFromShare.current = true;
     setLink(shared);
     setName(hostName);
     setLoadError(null);
     setDeck(presentation);
+    setExpiresAt(deadline);
+    setExpired(false);
+  };
+
+  /** Terminal expiry: drop the decrypted deck so nothing keeps rendering or reconnecting. */
+  const onExpired = () => {
+    setDeck(null);
+    setExpired(true);
   };
 
   const leaveRoom = () => {
@@ -104,6 +121,8 @@ function LiveSlides() {
     setLink(null);
     setName(null);
     setDeck(null);
+    setExpiresAt(null);
+    setExpired(false);
   };
 
   const join = (chosen: string) => {
@@ -126,10 +145,28 @@ function LiveSlides() {
     return <NoticeScreen title="Couldn't open this presentation" detail={loadError} />;
   }
 
+  if (expired) {
+    return (
+      <NoticeScreen
+        title="This presentation has expired or is unavailable"
+        detail="This room is no longer available. Ask the host to share the deck again."
+      />
+    );
+  }
+
   if (!name) return <JoinScreen onJoin={join} />;
   if (!deck) return <LoadingScreen />;
 
-  return <RoomView link={link} name={name} presentation={deck} onExit={leaveRoom} />;
+  return (
+    <RoomView
+      link={link}
+      name={name}
+      presentation={deck}
+      expiresAt={expiresAt}
+      onExpired={onExpired}
+      onExit={leaveRoom}
+    />
+  );
 }
 
 export function App() {

@@ -4,13 +4,18 @@ import {
   RECOMMENDED_ZIP_LIMITS,
   type PresentationData,
 } from "@aiden0z/pptx-renderer";
-import { MAX_FILE_BYTES, type RoomLink } from "./protocol";
+import { MAX_FILE_BYTES, type RoomLink, type RoomMetadata } from "./protocol";
 
 export interface PreparedDeck {
   presentation: PresentationData;
   encrypted: ArrayBuffer;
   secret: string;
   name: string;
+}
+
+/** A freshly uploaded room: the link plus the deadline the server fixed at creation. */
+export interface SharedRoom extends RoomLink {
+  expiresAt: number;
 }
 
 async function parseDeck(buffer: ArrayBuffer): Promise<PresentationData> {
@@ -53,13 +58,14 @@ export async function prepareDeck(file: File): Promise<PreparedDeck> {
   };
 }
 
-export async function shareDeck(deck: PreparedDeck): Promise<RoomLink> {
+export async function shareDeck(deck: PreparedDeck, ttlSeconds: number): Promise<SharedRoom> {
   const response = await fetch("/api/rooms", {
     method: "POST",
     headers: {
       "Content-Type": "application/octet-stream",
       "X-File-Name": encodeURIComponent(deck.name),
       "X-Slide-Count": String(deck.presentation.slides.length),
+      "X-TTL-Seconds": String(ttlSeconds),
     },
     body: deck.encrypted,
   });
@@ -67,8 +73,19 @@ export async function shareDeck(deck: PreparedDeck): Promise<RoomLink> {
     const body = (await response.json()) as { error?: string };
     throw new Error(body.error || "Could not share this presentation. Please try again.");
   }
-  const room = (await response.json()) as { roomId: string; hostKey: string };
+  const room = (await response.json()) as { roomId: string; hostKey: string; expiresAt: number };
   return { ...room, secret: deck.secret };
+}
+
+/** Authoritative room metadata, or null once the room is gone or past its deadline. */
+export async function fetchRoomMetadata(
+  roomId: string,
+  signal?: AbortSignal,
+): Promise<RoomMetadata | null> {
+  const response = await fetch(`/api/rooms/${roomId}/meta`, { signal, cache: "no-store" });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error("Could not reach this room.");
+  return (await response.json()) as RoomMetadata;
 }
 
 export async function loadDeck(link: RoomLink, signal?: AbortSignal): Promise<PresentationData> {
@@ -86,7 +103,7 @@ export async function loadDeck(link: RoomLink, signal?: AbortSignal): Promise<Pr
   if (!response.ok)
     throw new Error(
       response.status === 404
-        ? "This presentation could not be found."
+        ? "This presentation has expired or is unavailable."
         : "Could not download this presentation.",
     );
   const envelope = new Uint8Array(await response.arrayBuffer());

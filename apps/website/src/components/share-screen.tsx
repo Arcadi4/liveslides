@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { FileUpIcon, LoaderCircleIcon, PresentationIcon } from "lucide-react";
 import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
-import { MAX_FILE_BYTES, type RoomLink } from "@/protocol";
+import { MAX_FILE_BYTES, MAX_TTL_SECONDS, type RoomLink } from "@/protocol";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,18 @@ import { SlideView } from "@/slide-view";
 import { cn } from "@/lib/utils";
 import { rememberName, suggestName } from "@/identity";
 
+const TTL_CHOICES = [
+  { label: "8 hours", seconds: 8 * 60 * 60 },
+  { label: "7 days", seconds: 7 * 24 * 60 * 60 },
+  { label: "30 days", seconds: MAX_TTL_SECONDS },
+] as const;
+
+const DEFAULT_TTL_SECONDS = 8 * 60 * 60;
+
 export interface SharedDeck {
   link: RoomLink;
+  /** Deadline the server fixed when it accepted the upload. */
+  expiresAt: number;
   presentation: PreparedDeck["presentation"];
   name: string;
 }
@@ -28,6 +38,7 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [deck, setDeck] = useState<PreparedDeck | null>(null);
   const [name, setName] = useState(suggestName);
+  const [ttlSeconds, setTtlSeconds] = useState<number>(DEFAULT_TTL_SECONDS);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [fileLabel, setFileLabel] = useState<string | null>(null);
@@ -51,9 +62,14 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
     setError(null);
     setPhase("uploading");
     try {
-      const link = await shareDeck(deck);
+      const room = await shareDeck(deck, ttlSeconds);
       rememberName(name.trim());
-      onShared({ link, presentation: deck.presentation, name: name.trim() });
+      onShared({
+        link: room,
+        expiresAt: room.expiresAt,
+        presentation: deck.presentation,
+        name: name.trim(),
+      });
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -145,6 +161,29 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
               onChange={(event) => setName(event.target.value)}
               placeholder="Shown to everyone in the room"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="keep-available">Keep this presentation available for</Label>
+            <select
+              id="keep-available"
+              value={ttlSeconds}
+              disabled={busy}
+              onChange={(event) => setTtlSeconds(Number(event.target.value))}
+              className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
+            >
+              {TTL_CHOICES.map((choice) => (
+                <option key={choice.seconds} value={choice.seconds}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              The deadline is fixed the moment you share, not extended by activity. At that time
+              every link to the deck stops working, and the stored file is queued for deletion —
+              which can take a little longer if the deletion service fails. Anyone who already
+              downloaded the deck keeps their own copy.
+            </p>
           </div>
 
           {error && (

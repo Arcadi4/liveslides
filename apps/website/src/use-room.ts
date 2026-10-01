@@ -1,5 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientEvent, Participant, RoomLink, ServerEvent } from "./protocol";
+import { fetchRoomMetadata } from "@/crypto";
+import {
+  ROOM_EXPIRED_CLOSE_CODE,
+  type ClientEvent,
+  type Participant,
+  type RoomLink,
+  type ServerEvent,
+} from "./protocol";
+
+/** The largest delay a browser timeout accepts; a 30-day deadline needs several of them. */
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+interface RoomOptions {
+  /** Deadline the server already issued at upload, known before the socket connects. */
+  expiresAt?: number | null;
+  /** Called once when the room is gone for good, so the deck can be released. */
+  onExpired?: () => void;
+}
 
 export interface CursorPosition {
   x: number | null;
@@ -11,6 +28,8 @@ type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 
 export interface RoomSession {
   status: ConnectionStatus;
+  /** Server-issued deadline in Unix milliseconds, or null until the room reports it. */
+  expiresAt: number | null;
   participants: Participant[];
   self: Participant | undefined;
   slide: number;
@@ -23,7 +42,16 @@ export interface RoomSession {
   moveCursor: (x: number | null, y: number | null) => void;
 }
 
-export function useRoom(link: RoomLink | null, name: string | null): RoomSession {
+export function useRoom(
+  link: RoomLink | null,
+  name: string | null,
+  options: RoomOptions = {},
+): RoomSession {
+  const seedExpiresAt = options.expiresAt ?? null;
+  const onExpired = options.onExpired;
+  const [expiresAt, setExpiresAt] = useState<number | null>(seedExpiresAt);
+  const expiresAtRef = useRef<number | null>(seedExpiresAt);
+  const onExpiredRef = useRef(onExpired);
   const [status, setStatus] = useState<ConnectionStatus>("offline");
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [selfId, setSelfId] = useState<string>();
@@ -39,6 +67,10 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
   const pendingCursor = useRef<CursorPosition | null>(null);
   const lastCursorSent = useRef(0);
 
+  useEffect(() => {
+    onExpiredRef.current = onExpired;
+  }, [onExpired]);
+
   const send = useCallback((event: ClientEvent) => {
     if (socketRef.current?.readyState !== WebSocket.OPEN) return false;
     socketRef.current.send(JSON.stringify(event));
@@ -52,6 +84,8 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
     setError(null);
     setSlide(0);
     setHostSlide(0);
+    setExpiresAt(seedExpiresAt);
+    expiresAtRef.current = seedExpiresAt;
     slideRef.current = 0;
     detachedRef.current = false;
     selfRef.current = undefined;
@@ -64,10 +98,82 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
     let heartbeat: number | undefined;
     let attempts = 0;
     let joined = false;
+    let deadline: number | undefined;
+    const probe = new AbortController();
+
+    /** Terminal: the room is gone, so stop every timer and let the app release the deck. */
+    function expire() {
+      if (stopped) return;
+      stopped = true;
+      clearTimeout(retry);
+      clearInterval(heartbeat);
+      clearTimeout(deadline);
+      clearTimeout(cursorTimer.current);
+      cursorTimer.current = undefined;
+      pendingCursor.current = null;
+      socketRef.current?.close(1000, "Room expired");
+      socketRef.current = null;
+      setCursors(new Map());
+      setParticipants([]);
+      setStatus("offline");
+      onExpiredRef.current?.();
+    }
+
+    function setDeadline(at: number) {
+      expiresAtRef.current = at;
+      setExpiresAt((current) => (current === at ? current : at));
+      armDeadline();
+    }
+
+    /** Re-arms in chunks, because a 30-day deadline overflows a single browser timeout. */
+    function armDeadline() {
+      clearTimeout(deadline);
+      const at = expiresAtRef.current;
+      if (stopped || at === null) return;
+      const remaining = at - Date.now();
+      if (remaining <= 0) {
+        expire();
+        return;
+      }
+      deadline = setTimeout(armDeadline, Math.min(remaining, MAX_TIMEOUT_MS));
+    }
+
+    /** A missed close event must not leave us retrying a room that no longer exists. */
+    async function roomExists(): Promise<boolean> {
+      try {
+        const meta = await fetchRoomMetadata(link!.roomId, probe.signal);
+        if (stopped) return false;
+        if (meta === null) return false;
+        setDeadline(meta.expiresAt);
+        return true;
+      } catch {
+        return true;
+      }
+    }
 
     function connect() {
       if (stopped) return;
       setStatus(joined ? "reconnecting" : "connecting");
+      void roomExists().then((exists) => {
+        if (stopped) return;
+        if (exists) openSocket();
+        else expire();
+      });
+    }
+
+    const onVisibility = () => {
+      if (stopped || document.visibilityState !== "visible") return;
+      const at = expiresAtRef.current;
+      if (at !== null && at <= Date.now()) {
+        expire();
+        return;
+      }
+      void roomExists().then((exists) => {
+        if (!stopped && !exists) expire();
+      });
+    };
+
+    function openSocket() {
       const url = new URL(`/api/rooms/${link!.roomId}/ws`, location.origin);
       url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
       url.searchParams.set("name", name!);
@@ -94,6 +200,8 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
             const current = event.participants.find(
               (participant) => participant.id === event.selfId,
             );
+            setDeadline(event.room.expiresAt);
+            if (stopped) return;
             const restoreDetached = joined && detachedRef.current;
             setSelfId(event.selfId);
             setParticipants(event.participants);
@@ -166,9 +274,13 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
             break;
         }
       };
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         clearInterval(heartbeat);
         if (stopped) return;
+        if (event.code === ROOM_EXPIRED_CLOSE_CODE) {
+          expire();
+          return;
+        }
         setCursors(new Map());
         setParticipants([]);
         setStatus("reconnecting");
@@ -185,18 +297,23 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
       };
       socket.onerror = () => socket.close();
     }
+    document.addEventListener("visibilitychange", onVisibility);
+    armDeadline();
     connect();
     return () => {
       stopped = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      probe.abort();
       clearTimeout(retry);
       clearInterval(heartbeat);
+      clearTimeout(deadline);
       clearTimeout(cursorTimer.current);
       cursorTimer.current = undefined;
       pendingCursor.current = null;
       socketRef.current?.close(1000, "Leaving room");
       socketRef.current = null;
     };
-  }, [link?.roomId, link?.hostKey, name, send]);
+  }, [link?.roomId, link?.hostKey, name, seedExpiresAt, send]);
 
   const moveCursor = useCallback(
     (x: number | null, y: number | null) => {
@@ -248,6 +365,7 @@ export function useRoom(link: RoomLink | null, name: string | null): RoomSession
 
   return {
     status,
+    expiresAt,
     participants,
     self: participants.find((participant) => participant.id === selfId),
     slide,

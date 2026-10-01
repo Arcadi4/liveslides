@@ -6,6 +6,7 @@ import {
   LogOutIcon,
   Maximize2Icon,
   Minimize2Icon,
+  TimerIcon,
   UnlinkIcon,
   UsersIcon,
 } from "lucide-react";
@@ -86,6 +87,7 @@ interface RoomControlsProps {
   hostSlide: number;
   slideCount: number;
   link: RoomLink;
+  expiresAt: number | null;
   canNavigate: boolean;
   onNavigate: (slide: number) => void;
   onDetach: () => void;
@@ -101,6 +103,7 @@ export function RoomControls({
   hostSlide,
   slideCount,
   link,
+  expiresAt,
   canNavigate,
   onNavigate,
   onDetach,
@@ -122,6 +125,10 @@ export function RoomControls({
 
   const detached = self?.detached ?? false;
   const position = `${slide + 1} / ${slideCount}`;
+  const deadline =
+    expiresAt === null
+      ? null
+      : new Date(expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
   return (
     <Card className="pointer-events-auto flex w-fit max-w-[calc(100vw-1rem)] flex-row flex-wrap items-center gap-1 rounded-full p-1 shadow-lg">
@@ -179,6 +186,25 @@ export function RoomControls({
         <TooltipContent>{STATUS_HINT[status]}</TooltipContent>
       </Tooltip>
 
+      {deadline && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0} className="rounded-full">
+              <Badge variant="outline" className="h-7 gap-1.5 px-2 text-muted-foreground">
+                <TimerIcon className="size-3" aria-hidden="true" />
+                <span className="max-w-36 truncate text-xs font-normal tabular-nums">
+                  {deadline}
+                </span>
+              </Badge>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Every link stops working after {deadline}. The stored file is deleted after that, and
+            anyone who already downloaded the deck keeps their own copy.
+          </TooltipContent>
+        </Tooltip>
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -230,7 +256,7 @@ export function RoomControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <ShareDialog link={link} />
+      <ShareDialog link={link} deadline={deadline} />
 
       <IconControl
         label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}

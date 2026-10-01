@@ -2,16 +2,20 @@
  * LiveSlides room worker.
  *
  * One Durable Object per room. The object owns the room's immutable metadata, its
- * position in the deck, and the participant set; encrypted decks live in R2 under
- * a content address derived from the ciphertext, so nothing in this file ever sees
- * the deck key or the plaintext.
+ * position in the deck, and the participant set; each room exclusively owns an
+ * encrypted deck in R2, so nothing in this file ever sees the deck key or plaintext.
  *
  * Public room IDs encode 64 random bits as 11 Base64URL characters and name their
  * Durable Objects directly. Creation uploads ciphertext once, then tries at most
  * five IDs; atomic initialization rejects collisions without overwriting a room.
+ *
+ * Uploads choose a fixed TTL of at most 30 days. The server-generated deadline
+ * gates every room operation; an alarm deletes ciphertext before room storage,
+ * retaining the object key and rescheduling on failure. Physical deletion can
+ * lag access expiry, and previously downloaded copies cannot be revoked.
  */
 import { DurableObject } from "cloudflare:workers";
-import { MAX_FILE_BYTES } from "../src/protocol.ts";
+import { MAX_FILE_BYTES, MAX_TTL_SECONDS, ROOM_EXPIRED_CLOSE_CODE } from "../src/protocol.ts";
 import type { ClientEvent, Participant, RoomMetadata, ServerEvent } from "../src/protocol.ts";
 
 export interface Env {
@@ -39,6 +43,7 @@ const HOST_TOKEN_BYTES = 16;
 const PARTICIPANT_ID_BYTES = 12;
 const ROOM_STATE_KEY = "room";
 const DECK_PREFIX = "decks/";
+const CLEANUP_RETRY_MS = 5 * 60 * 1000;
 const ROOMS_PATH = "/api/rooms";
 /** Reachable only through the object stub, never through the public router. */
 const INIT_PATH = "/internal/rooms/init";
@@ -117,21 +122,63 @@ export class SlideRoom extends DurableObject<Env> {
     const claimed = await this.ctx.storage.transaction(async (txn) => {
       if ((await txn.get<RoomState>(ROOM_STATE_KEY)) !== undefined) return false;
       await txn.put<RoomState>(ROOM_STATE_KEY, { meta, hostKey, blobKey, slide: 0 });
+      await this.ctx.storage.setAlarm(meta.expiresAt);
       return true;
     });
     return claimed ? json({ hostKey }, 201) : json({ error: "room already initialized" }, 409);
   }
 
-  async #meta(): Promise<Response> {
+  async #activeState(): Promise<RoomState | undefined> {
     const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
-    return state === undefined ? json({ error: "room not found" }, 404) : json(state.meta);
+    if (state === undefined || Date.now() >= state.meta.expiresAt) {
+      this.#closeExpiredSockets();
+      return undefined;
+    }
+    return state;
+  }
+
+  #closeExpiredSockets(): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      if (isLive(socket)) socket.close(ROOM_EXPIRED_CLOSE_CODE, "room expired");
+    }
+  }
+
+  async alarm(): Promise<void> {
+    try {
+      const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
+      if (state === undefined) return;
+      if (Date.now() < state.meta.expiresAt) {
+        await this.ctx.storage.setAlarm(state.meta.expiresAt);
+        return;
+      }
+      this.#closeExpiredSockets();
+      // Retain the object key until R2 deletion succeeds, so failures are retryable.
+      await this.env.SLIDES.delete(state.blobKey);
+      await this.ctx.storage.deleteAll();
+    } catch (error) {
+      console.error("Room cleanup failed; scheduling another attempt", error);
+      await this.ctx.storage.setAlarm(Date.now() + CLEANUP_RETRY_MS);
+    }
+  }
+
+  async #meta(): Promise<Response> {
+    const state = await this.#activeState();
+    return state === undefined
+      ? json({ error: "room expired or not found" }, 404)
+      : json(state.meta);
   }
 
   async #file(): Promise<Response> {
-    const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
-    if (state === undefined) return json({ error: "room not found" }, 404);
+    const state = await this.#activeState();
+    if (state === undefined) return json({ error: "room expired or not found" }, 404);
 
     const object = await this.env.SLIDES.get(state.blobKey);
+    // R2 I/O can straddle the deadline; never admit a download afterward.
+    if (Date.now() >= state.meta.expiresAt) {
+      await object?.body.cancel();
+      this.#closeExpiredSockets();
+      return json({ error: "room expired or not found" }, 404);
+    }
     if (object === null) return json({ error: "deck not found" }, 404);
 
     return new Response(object.body, {
@@ -153,8 +200,8 @@ export class SlideRoom extends DurableObject<Env> {
     if (origin !== null && origin !== url.origin)
       return json({ error: "cross-origin socket rejected" }, 403);
 
-    const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
-    if (state === undefined) return json({ error: "room not found" }, 404);
+    const state = await this.#activeState();
+    if (state === undefined) return json({ error: "room expired or not found" }, 404);
 
     const params = url.searchParams;
     let role: Attachment["role"] = "audience";
@@ -198,6 +245,8 @@ export class SlideRoom extends DurableObject<Env> {
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    const state = await this.#activeState();
+    if (state === undefined) return;
     const attachment = ws.deserializeAttachment() as Attachment | null;
     if (attachment === null) {
       ws.close(1008, "unregistered socket");
@@ -224,11 +273,6 @@ export class SlideRoom extends DurableObject<Env> {
 
     switch (event.type) {
       case "navigate": {
-        const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
-        if (state === undefined) {
-          ws.close(1011, "room is gone");
-          return;
-        }
         const slide = Math.min(event.slide, state.meta.slideCount - 1);
         // Moving is local unless an attached host drives the room, and an audience
         // member that leaves the global slide is detached by definition.
@@ -254,11 +298,6 @@ export class SlideRoom extends DurableObject<Env> {
         return;
       }
       case "follow": {
-        const state = await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY);
-        if (state === undefined) {
-          ws.close(1011, "room is gone");
-          return;
-        }
         ws.serializeAttachment({ ...attachment, detached: false, slide: state.slide });
         this.#send(ws, {
           type: "state",
@@ -284,12 +323,12 @@ export class SlideRoom extends DurableObject<Env> {
     }
   }
 
-  webSocketClose(): void {
-    this.#broadcastPresence();
+  async webSocketClose(): Promise<void> {
+    if ((await this.#activeState()) !== undefined) this.#broadcastPresence();
   }
 
-  webSocketError(): void {
-    this.#broadcastPresence();
+  async webSocketError(): Promise<void> {
+    if ((await this.#activeState()) !== undefined) this.#broadcastPresence();
   }
 
   #participants(sockets = this.ctx.getWebSockets()): Participant[] {
@@ -376,6 +415,11 @@ async function createRoom(request: Request, url: URL, env: Env): Promise<Respons
   if (name === null) return json({ error: "invalid file name" }, 400);
   const slideCount = slideCountOf(request.headers.get("x-slide-count"));
   if (slideCount === null) return json({ error: "invalid slide count" }, 400);
+  const ttlHeader = request.headers.get("x-ttl-seconds");
+  const ttlSeconds = ttlHeader !== null && /^[1-9]\d{0,6}$/.test(ttlHeader) ? Number(ttlHeader) : 0;
+  if (ttlSeconds < 1 || ttlSeconds > MAX_TTL_SECONDS) {
+    return json({ error: "TTL must be an integer between 1 second and 30 days" }, 400);
+  }
   if (request.body === null) return json({ error: "missing deck" }, 400);
 
   try {
@@ -383,15 +427,14 @@ async function createRoom(request: Request, url: URL, env: Env): Promise<Respons
     if (envelope === null) return json({ error: "deck is too large" }, 413);
     if (envelope.byteLength === 0) return json({ error: "missing deck" }, 400);
 
-    const blobKey = DECK_PREFIX + (await sha256Hex(envelope));
-    if ((await env.SLIDES.head(blobKey)) === null) {
-      // A conditional write keeps identical ciphertext immutable and stored once.
-      await env.SLIDES.put(blobKey, envelope, {
-        onlyIf: { etagDoesNotMatch: "*" },
-        httpMetadata: { contentType: "application/octet-stream" },
-      });
-    }
-    const body = JSON.stringify({ meta: { name, slideCount }, blobKey });
+    const expiresAt = Date.now() + ttlSeconds * 1000;
+    const blobKey = DECK_PREFIX + crypto.randomUUID();
+    const stored = await env.SLIDES.put(blobKey, envelope, {
+      onlyIf: { etagDoesNotMatch: "*" },
+      httpMetadata: { contentType: "application/octet-stream" },
+    });
+    if (stored === null) return json({ error: "could not store the deck; please try again" }, 503);
+    const body = JSON.stringify({ meta: { name, slideCount, expiresAt }, blobKey });
     for (let attempt = 0; attempt < MAX_ROOM_CANDIDATES; attempt += 1) {
       const roomId = randomToken(ROOM_ID_BYTES);
       const response = await env.ROOMS.getByName(roomId).fetch(
@@ -404,8 +447,10 @@ async function createRoom(request: Request, url: URL, env: Env): Promise<Respons
       if (response.status === 409) continue;
       if (response.status !== 201) return response;
       const { hostKey } = (await response.json()) as { hostKey: string };
-      return json({ roomId, hostKey }, 201);
+      return json({ roomId, hostKey, expiresAt }, 201);
     }
+    // All candidates rejected initialization, so no room can own this upload.
+    await env.SLIDES.delete(blobKey);
     return json({ error: "could not allocate a room; please try again" }, 503);
   } catch {
     return json({ error: "room is unavailable" }, 502);
@@ -477,13 +522,6 @@ async function readBounded(
     chunks[i] = EMPTY;
   }
   return joined;
-}
-
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-  let hex = "";
-  for (const byte of digest) hex += byte.toString(16).padStart(2, "0");
-  return hex;
 }
 
 /**

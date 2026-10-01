@@ -31,11 +31,22 @@ interface RoomViewProps {
   link: RoomLink;
   name: string;
   presentation: PresentationData;
+  /** Deadline from the upload response, used until the room reports its own. */
+  expiresAt: number | null;
+  onExpired: () => void;
   onExit: () => void;
 }
 
-export function RoomView({ link, name, presentation, onExit }: RoomViewProps) {
-  const room = useRoom(link, name);
+export function RoomView({
+  link,
+  name,
+  presentation,
+  expiresAt,
+  onExpired,
+  onExit,
+}: RoomViewProps) {
+  const room = useRoom(link, name, { expiresAt, onExpired });
+  const deadline = room.expiresAt ?? expiresAt;
   const stageRef = useRef<HTMLDivElement>(null);
   const lastSlide = presentation.slides.length - 1;
   const canNavigate = room.status === "connected";
@@ -108,6 +119,7 @@ export function RoomView({ link, name, presentation, onExit }: RoomViewProps) {
           hostSlide={room.hostSlide}
           slideCount={presentation.slides.length}
           link={link}
+          expiresAt={deadline}
           canNavigate={canNavigate}
           onNavigate={navigate}
           onDetach={room.detach}
