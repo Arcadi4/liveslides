@@ -36,6 +36,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "cf": "1.0.0-beta.5",
+    "react-doctor": "^0.9.14",
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
     "vite-plus": "1.0.0"
@@ -44,7 +45,7 @@
     "packageManager": {
       "name": "pnpm",
       "version": "12.8.1",
-      "onFail": "download"
+      "onFail": "warn"
     }
   },
   "engines": {
