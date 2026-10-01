@@ -5,6 +5,10 @@
  * position in the deck, and the participant set; encrypted decks live in R2 under
  * a content address derived from the ciphertext, so nothing in this file ever sees
  * the deck key or the plaintext.
+ *
+ * Public room IDs encode 64 random bits as 11 Base64URL characters and name their
+ * Durable Objects directly. Creation uploads ciphertext once, then tries at most
+ * five IDs; atomic initialization rejects collisions without overwriting a room.
  */
 import { DurableObject } from "cloudflare:workers";
 import { MAX_FILE_BYTES } from "../src/protocol.ts";
@@ -29,6 +33,8 @@ const MAX_PARTICIPANTS = 200;
 const MAX_MESSAGE_BYTES = 4_096;
 /** Keeps cursors near 30Hz while staying below a 34ms client interval. */
 const CURSOR_MIN_INTERVAL_MS = 30;
+const ROOM_ID_BYTES = 8;
+const MAX_ROOM_CANDIDATES = 5;
 const HOST_TOKEN_BYTES = 16;
 const PARTICIPANT_ID_BYTES = 12;
 const ROOM_STATE_KEY = "room";
@@ -36,7 +42,7 @@ const DECK_PREFIX = "decks/";
 const ROOMS_PATH = "/api/rooms";
 /** Reachable only through the object stub, never through the public router. */
 const INIT_PATH = "/internal/rooms/init";
-const ROOM_ROUTE = /^\/api\/rooms\/([a-f0-9]{64})\/(meta|file|ws)$/;
+const ROOM_ROUTE = /^\/api\/rooms\/([A-Za-z0-9_-]{11})\/(meta|file|ws)$/;
 
 const SECURITY_HEADERS = {
   "cache-control": "no-store",
@@ -101,55 +107,19 @@ export class SlideRoom extends DurableObject<Env> {
     return json({ error: "not found" }, 404);
   }
 
-  /** Stores the deck and the immutable metadata exactly once. */
+  /** Atomically claims a room name; upload I/O happens before this private call. */
   async #initialize(request: Request): Promise<Response> {
-    const mediaType = (request.headers.get("content-type") ?? "")
-      .split(";")[0]!
-      .trim()
-      .toLowerCase();
-    if (mediaType !== "application/octet-stream") {
-      return json({ error: "expected application/octet-stream" }, 415);
-    }
-    const declared = declaredLength(request.headers.get("content-length"));
-    if (declared > MAX_UPLOAD_BYTES) {
-      return json({ error: "deck is too large" }, 413);
-    }
-
-    const name = roomName(request.headers.get("x-file-name"));
-    if (name === null) return json({ error: "invalid file name" }, 400);
-
-    const slideCount = slideCountOf(request.headers.get("x-slide-count"));
-    if (slideCount === null) return json({ error: "invalid slide count" }, 400);
-
-    if ((await this.ctx.storage.get<RoomState>(ROOM_STATE_KEY)) !== undefined) {
-      return json({ error: "room already initialized" }, 409);
-    }
-    if (request.body === null) return json({ error: "missing deck" }, 400);
-
-    // The envelope has to be buffered to be hashed, so the ceiling is enforced
-    // while reading rather than after the fact.
-    const envelope = await readBounded(request.body, MAX_UPLOAD_BYTES, declared);
-    if (envelope === null) return json({ error: "deck is too large" }, 413);
-    if (envelope.byteLength === 0) return json({ error: "missing deck" }, 400);
-
-    const blobKey = DECK_PREFIX + (await sha256Hex(envelope));
-    if ((await this.env.SLIDES.head(blobKey)) === null) {
-      // The conditional write makes a concurrent duplicate a no-op, so equal
-      // ciphertext is stored once and never mutated.
-      await this.env.SLIDES.put(blobKey, envelope, {
-        onlyIf: { etagDoesNotMatch: "*" },
-        httpMetadata: { contentType: "application/octet-stream" },
-      });
-    }
-
+    const { meta, blobKey } = (await request.json()) as {
+      meta: RoomMetadata;
+      blobKey: string;
+    };
     const hostKey = randomToken(HOST_TOKEN_BYTES);
-    await this.ctx.storage.put<RoomState>(ROOM_STATE_KEY, {
-      meta: { name, slideCount },
-      hostKey,
-      blobKey,
-      slide: 0,
+    const claimed = await this.ctx.storage.transaction(async (txn) => {
+      if ((await txn.get<RoomState>(ROOM_STATE_KEY)) !== undefined) return false;
+      await txn.put<RoomState>(ROOM_STATE_KEY, { meta, hostKey, blobKey, slide: 0 });
+      return true;
     });
-    return json({ roomId: this.ctx.id.toString(), hostKey }, 201);
+    return claimed ? json({ hostKey }, 201) : json({ error: "room already initialized" }, 409);
   }
 
   async #meta(): Promise<Response> {
@@ -374,7 +344,7 @@ export default {
 
     const route = ROOM_ROUTE.exec(url.pathname);
     if (route !== null) {
-      const stub = env.ROOMS.get(env.ROOMS.idFromString(route[1]!));
+      const stub = env.ROOMS.getByName(route[1]!);
       try {
         // Returned untouched: rebuilding it would drop the upgrade's WebSocket.
         return await stub.fetch(request);
@@ -388,7 +358,7 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-/** Creates a room and hands the deck to the fresh object through its internal route. */
+/** Stores the upload once, then claims a random room name without overwriting another room. */
 async function createRoom(request: Request, url: URL, env: Env): Promise<Response> {
   if (request.method !== "POST")
     return json({ error: "method not allowed" }, 405, { allow: "POST" });
@@ -400,23 +370,43 @@ async function createRoom(request: Request, url: URL, env: Env): Promise<Respons
   if (mediaType !== "application/octet-stream") {
     return json({ error: "expected application/octet-stream" }, 415);
   }
-  if (declaredLength(request.headers.get("content-length")) > MAX_UPLOAD_BYTES) {
-    return json({ error: "deck is too large" }, 413);
-  }
+  const declared = declaredLength(request.headers.get("content-length"));
+  if (declared > MAX_UPLOAD_BYTES) return json({ error: "deck is too large" }, 413);
+  const name = roomName(request.headers.get("x-file-name"));
+  if (name === null) return json({ error: "invalid file name" }, 400);
+  const slideCount = slideCountOf(request.headers.get("x-slide-count"));
+  if (slideCount === null) return json({ error: "invalid slide count" }, 400);
+  if (request.body === null) return json({ error: "missing deck" }, 400);
 
-  // Only the upload headers cross the boundary; the room route is not routable
-  // from outside, so the initialize step stays in the worker's hands.
-  const headers = new Headers({ "content-type": "application/octet-stream" });
-  for (const name of ["content-length", "x-file-name", "x-slide-count"]) {
-    const value = request.headers.get(name);
-    if (value !== null) headers.set(name, value);
-  }
-
-  const stub = env.ROOMS.get(env.ROOMS.newUniqueId());
   try {
-    return await stub.fetch(
-      new Request(new URL(INIT_PATH, url), { method: "POST", headers, body: request.body }),
-    );
+    const envelope = await readBounded(request.body, MAX_UPLOAD_BYTES, declared);
+    if (envelope === null) return json({ error: "deck is too large" }, 413);
+    if (envelope.byteLength === 0) return json({ error: "missing deck" }, 400);
+
+    const blobKey = DECK_PREFIX + (await sha256Hex(envelope));
+    if ((await env.SLIDES.head(blobKey)) === null) {
+      // A conditional write keeps identical ciphertext immutable and stored once.
+      await env.SLIDES.put(blobKey, envelope, {
+        onlyIf: { etagDoesNotMatch: "*" },
+        httpMetadata: { contentType: "application/octet-stream" },
+      });
+    }
+    const body = JSON.stringify({ meta: { name, slideCount }, blobKey });
+    for (let attempt = 0; attempt < MAX_ROOM_CANDIDATES; attempt += 1) {
+      const roomId = randomToken(ROOM_ID_BYTES);
+      const response = await env.ROOMS.getByName(roomId).fetch(
+        new Request(new URL(INIT_PATH, url), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+        }),
+      );
+      if (response.status === 409) continue;
+      if (response.status !== 201) return response;
+      const { hostKey } = (await response.json()) as { hostKey: string };
+      return json({ roomId, hostKey }, 201);
+    }
+    return json({ error: "could not allocate a room; please try again" }, 503);
   } catch {
     return json({ error: "room is unavailable" }, 502);
   }

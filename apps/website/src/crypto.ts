@@ -29,7 +29,8 @@ export async function prepareDeck(file: File): Promise<PreparedDeck> {
   const compressed = await new Response(
     file.stream().pipeThrough(new CompressionStream("gzip")),
   ).arrayBuffer();
-  const rawKey = crypto.getRandomValues(new Uint8Array(32));
+  // A fresh AES-128 key per deck: 16 random bytes become 22 unpadded Base64URL characters.
+  const rawKey = crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["encrypt"]);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, compressed);
@@ -71,13 +72,13 @@ export async function shareDeck(deck: PreparedDeck): Promise<RoomLink> {
 }
 
 export async function loadDeck(link: RoomLink, signal?: AbortSignal): Promise<PresentationData> {
-  if (!/^[A-Za-z0-9_-]{43}$/.test(link.secret)) {
+  if (!/^[A-Za-z0-9_-]{22}$/.test(link.secret)) {
     throw new Error(
       "This link is missing its encryption key. Ask for the complete link, including the # part.",
     );
   }
   const rawKey = Uint8Array.from(
-    atob(link.secret.replaceAll("-", "+").replaceAll("_", "/") + "="),
+    atob(link.secret.replaceAll("-", "+").replaceAll("_", "/") + "=="),
     (char) => char.charCodeAt(0),
   );
   const key = await crypto.subtle.importKey("raw", rawKey, "AES-GCM", false, ["decrypt"]);
