@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FC } from "react";
+import { useEffect, useRef, type FC } from "react";
 import { m, useReducedMotion, useSpring, useTransform } from "motion/react";
 
 /**
@@ -56,7 +56,8 @@ export function SmoothCursor({
   const lastUpdateTime = useRef(0);
   const settled = useRef(false);
   const squashTimeout = useRef<TimerHandle | undefined>(undefined);
-  const [isVisible, setIsVisible] = useState(false);
+  // Presence is a property of the incoming sample, so it is read, not stored.
+  const isVisible = x !== null && y !== null;
   const prefersReducedMotion = useReducedMotion();
 
   // Positions stay normalized and are applied as percentages of the stage, so a
@@ -72,10 +73,7 @@ export function SmoothCursor({
   }, []);
 
   useEffect(() => {
-    if (x === null || y === null) {
-      setIsVisible(false);
-      return;
-    }
+    if (x === null || y === null) return;
 
     const now = Date.now();
     const elapsed = now - lastUpdateTime.current;
@@ -103,8 +101,6 @@ export function SmoothCursor({
       cursorX.set(x);
       cursorY.set(y);
     }
-
-    setIsVisible(true);
   }, [x, y, prefersReducedMotion, cursorX, cursorY, scale]);
 
   return (
@@ -119,7 +115,9 @@ export function SmoothCursor({
         scale,
         transformOrigin: "0 0",
         pointerEvents: "none",
-        willChange: "transform",
+        // The layer only animates while a collaborator's pointer is on the
+        // stage, so the compositor hint is not left on all the time.
+        willChange: isVisible ? "transform" : undefined,
         opacity: isVisible ? 1 : 0,
       }}
       initial={false}
