@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FC } from "react";
-import { motion, useReducedMotion, useSpring, useTransform } from "motion/react";
+import { m, useReducedMotion, useSpring, useTransform } from "motion/react";
 
 /**
  * MagicUI SmoothCursor adapted to collaboration: the pointer arrives from the
@@ -108,7 +108,7 @@ export function SmoothCursor({
   }, [x, y, prefersReducedMotion, cursorX, cursorY, scale]);
 
   return (
-    <motion.div
+    <m.div
       style={{
         position: "absolute",
         inset: 0,
@@ -135,6 +135,6 @@ export function SmoothCursor({
           {name}
         </span>
       </span>
-    </motion.div>
+    </m.div>
   );
 }

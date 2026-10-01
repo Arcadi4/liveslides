@@ -1,3 +1,4 @@
+import { LazyMotion, domAnimation } from "motion/react";
 import { SmoothCursor } from "@/components/magicui/smooth-cursor";
 import type { Participant } from "@/protocol";
 
@@ -16,7 +17,7 @@ export function CursorLayer({ cursors, participants, selfId, slide }: CursorLaye
   const byId = new Map(participants.map((participant) => [participant.id, participant]));
 
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       {[...cursors].map(([id, cursor]) => {
         const participant = byId.get(id);
         if (!participant || id === selfId) return null;
@@ -32,6 +33,6 @@ export function CursorLayer({ cursors, participants, selfId, slide }: CursorLaye
           />
         );
       })}
-    </>
+    </LazyMotion>
   );
 }
