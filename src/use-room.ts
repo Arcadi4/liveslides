@@ -49,7 +49,8 @@ export function useRoom(
 ): RoomSession {
   const seedExpiresAt = options.expiresAt ?? null;
   const onExpired = options.onExpired;
-  const [expiresAt, setExpiresAt] = useState<number | null>(seedExpiresAt);
+  // Deadlines the room reports win; the seed only stands in until the first report.
+  const [serverExpiresAt, setServerExpiresAt] = useState<number | null>(null);
   const expiresAtRef = useRef<number | null>(seedExpiresAt);
   // Primitive link fields keep the connect effect's dependencies stable.
   const roomId = link?.roomId ?? null;
@@ -87,7 +88,7 @@ export function useRoom(
     setError(null);
     setSlide(0);
     setHostSlide(0);
-    setExpiresAt(seedExpiresAt);
+    setServerExpiresAt(null);
     expiresAtRef.current = seedExpiresAt;
     slideRef.current = 0;
     detachedRef.current = false;
@@ -121,10 +122,9 @@ export function useRoom(
       setStatus("offline");
       onExpiredRef.current?.();
     }
-
     function setDeadline(at: number) {
       expiresAtRef.current = at;
-      setExpiresAt((current) => (current === at ? current : at));
+      setServerExpiresAt((current) => (current === at ? current : at));
       armDeadline();
     }
 
@@ -368,7 +368,7 @@ export function useRoom(
 
   return {
     status,
-    expiresAt,
+    expiresAt: serverExpiresAt ?? seedExpiresAt,
     participants,
     self: participants.find((participant) => participant.id === selfId),
     slide,
