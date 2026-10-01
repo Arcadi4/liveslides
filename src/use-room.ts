@@ -51,6 +51,9 @@ export function useRoom(
   const onExpired = options.onExpired;
   const [expiresAt, setExpiresAt] = useState<number | null>(seedExpiresAt);
   const expiresAtRef = useRef<number | null>(seedExpiresAt);
+  // Primitive link fields keep the connect effect's dependencies stable.
+  const roomId = link?.roomId ?? null;
+  const hostKey = link?.hostKey ?? null;
   const onExpiredRef = useRef(onExpired);
   const [status, setStatus] = useState<ConnectionStatus>("offline");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -89,7 +92,7 @@ export function useRoom(
     slideRef.current = 0;
     detachedRef.current = false;
     selfRef.current = undefined;
-    if (!link || name === null) {
+    if (roomId === null || name === null) {
       setStatus("offline");
       return;
     }
@@ -141,7 +144,7 @@ export function useRoom(
     /** A missed close event must not leave us retrying a room that no longer exists. */
     async function roomExists(): Promise<boolean> {
       try {
-        const meta = await fetchRoomMetadata(link!.roomId, probe.signal);
+        const meta = await fetchRoomMetadata(roomId!, probe.signal);
         if (stopped) return false;
         if (meta === null) return false;
         setDeadline(meta.expiresAt);
@@ -174,10 +177,10 @@ export function useRoom(
     };
 
     function openSocket() {
-      const url = new URL(`/api/rooms/${link!.roomId}/ws`, location.origin);
+      const url = new URL(`/api/rooms/${roomId}/ws`, location.origin);
       url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
       url.searchParams.set("name", name!);
-      if (link!.hostKey) url.searchParams.set("host", link!.hostKey);
+      if (hostKey) url.searchParams.set("host", hostKey);
       const socket = new WebSocket(url);
       socketRef.current = socket;
       let restorePosition: number | null = null;
@@ -313,7 +316,7 @@ export function useRoom(
       socketRef.current?.close(1000, "Leaving room");
       socketRef.current = null;
     };
-  }, [link?.roomId, link?.hostKey, name, seedExpiresAt, send]);
+  }, [roomId, hostKey, name, seedExpiresAt, send]);
 
   const moveCursor = useCallback(
     (x: number | null, y: number | null) => {
