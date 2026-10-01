@@ -14,6 +14,7 @@ export default defineConfig({
       enabled: true,
       issues: { enabled: true },
       logs: { enabled: true },
+      traces: { enabled: true },
     },
     env: {
       ASSETS: bindings.assets(),

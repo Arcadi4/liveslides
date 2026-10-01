@@ -3,12 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "ready": "vp check && vp run build",
-    "dev": "cf dev",
-    "build": "tsc -p tsconfig.json && cf build",
-    "deploy": "cf deploy"
-  },
   "dependencies": {
     "@aiden0z/pptx-renderer": "^1.3.0",
     "@radix-ui/react-avatar": "^1.2.6",
