@@ -1,15 +1,15 @@
-import { useRef, useState, type DragEvent } from "react";
-import { FileUpIcon, LoaderCircleIcon, PresentationIcon } from "lucide-react";
-import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
-import { MAX_FILE_BYTES, MAX_TTL_SECONDS, type RoomLink } from "@/protocol";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SlideView } from "@/slide-view";
-import { cn } from "@/lib/utils";
+import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
 import { rememberName, suggestName } from "@/identity";
+import { cn } from "@/lib/utils";
+import { MAX_FILE_BYTES, MAX_TTL_SECONDS, type RoomLink } from "@/protocol";
+import { SlideView } from "@/slide-view";
+import { FileUpIcon, LoaderCircleIcon, PresentationIcon } from "lucide-react";
+import { useRef, useState, type DragEvent } from "react";
 
 const TTL_CHOICES = [
   { label: "8 hours", seconds: 8 * 60 * 60 },
@@ -95,8 +95,8 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
         <CardHeader>
           <CardTitle className="text-base">Share presentation</CardTitle>
           <CardDescription>
-            The deck is encrypted in your browser. The key never leaves this page — it travels only
-            inside the share link.
+            The deck is encrypted locally. No one aside from the people you share the link with can
+            view it, even the server.
           </CardDescription>
         </CardHeader>
 
@@ -177,13 +177,7 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
                   {choice.label}
                 </option>
               ))}
-            </select>
-            <p className="text-xs text-muted-foreground">
-              The deadline is fixed the moment you share, not extended by activity. At that time
-              every link to the deck stops working, and the stored file is queued for deletion —
-              which can take a little longer if the deletion service fails. Anyone who already
-              downloaded the deck keeps their own copy.
-            </p>
+            </select>{" "}
           </div>
 
           {error && (
