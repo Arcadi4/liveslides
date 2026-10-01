@@ -10,6 +10,11 @@ export default defineConfig({
       notFoundHandling: "single-page-application",
       runWorkerFirst: ["/api/*"],
     },
+    observability: {
+      enabled: true,
+      issues: { enabled: true },
+      logs: { enabled: true },
+    },
     env: {
       ASSETS: bindings.assets(),
       ROOMS: bindings.durableObject({ worker: "liveslides", exportName: "SlideRoom" }),
