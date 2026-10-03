@@ -19,6 +19,7 @@ export interface JoinScreenProps {
   onJoin: (name: string) => void;
   onBack?: () => void;
   isEntering?: boolean;
+  isLeaving?: boolean;
 }
 
 export function JoinScreen({
@@ -30,6 +31,7 @@ export function JoinScreen({
   onJoin,
   onBack,
   isEntering = false,
+  isLeaving = false,
 }: JoinScreenProps) {
   const [name, setName] = useState(suggestName);
   return (
@@ -37,6 +39,7 @@ export function JoinScreen({
       className={cn(
         "flex min-h-dvh flex-col items-center justify-center p-4 sm:p-8",
         isEntering && "t-join-page-enter",
+        isLeaving && "t-join-page-exit",
       )}
     >
       <Card className="w-full max-w-md gap-4 py-5">

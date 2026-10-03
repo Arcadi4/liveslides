@@ -8,12 +8,14 @@ interface RecentPresentationsProps {
   className?: string;
   onSelectRoom?: (room: RecentRoom) => void;
   fadeOut?: boolean;
+  entering?: boolean;
 }
 
 export function RecentPresentations({
   className,
   onSelectRoom,
   fadeOut = false,
+  entering = false,
 }: RecentPresentationsProps = {}) {
   const [rooms, setRooms] = useState<RecentRoom[]>([]);
   const [now, setNow] = useState(Date.now);
@@ -55,6 +57,7 @@ export function RecentPresentations({
       aria-label="Recent presentations"
       className={cn("t-history-panel w-full max-w-md lg:w-72 lg:shrink-0", className)}
       data-fading-out={fadeOut ? "true" : undefined}
+      data-entering={entering ? "true" : undefined}
     >
       <h2 className="mb-3 text-sm font-medium">Recent presentations</h2>
       <ul className="flex flex-col gap-4">
