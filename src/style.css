@@ -426,6 +426,54 @@
   pointer-events: none;
 }
 
+/* Returning home: each surface re-enters from the exact pose it left on, so a
+   round trip reads as one continuous surface instead of two separate fades. */
+.t-home-card[data-entering="true"] {
+  animation: home-card-enter var(--home-transition-dur) var(--home-transition-ease) forwards;
+}
+
+@keyframes home-card-enter {
+  from {
+    opacity: 0;
+    filter: blur(var(--blur-medium));
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.t-history-panel[data-entering="true"] {
+  animation: history-panel-enter var(--home-transition-dur) var(--home-transition-ease) forwards;
+}
+
+@keyframes history-panel-enter {
+  from {
+    opacity: 0;
+    filter: blur(var(--blur-medium));
+    transform: translateY(var(--distance-base));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.t-join-page-exit {
+  opacity: 0;
+  filter: blur(var(--blur-medium));
+  transform: translateY(var(--distance-base));
+  pointer-events: none;
+  transition:
+    opacity var(--home-transition-dur) var(--home-transition-ease),
+    filter var(--home-transition-dur) var(--home-transition-ease),
+    transform var(--home-transition-dur) var(--home-transition-ease);
+  will-change: opacity, filter, transform;
+}
+
 .t-join-page-enter {
   opacity: 0;
   filter: blur(var(--blur-medium));
@@ -445,13 +493,14 @@
 @media (prefers-reduced-motion: reduce) {
   .t-history-panel,
   .t-home-card,
-  .t-join-page-enter {
+  .t-join-page-enter,
+  .t-join-page-exit {
     transition: none !important;
     animation: none !important;
     transform: none !important;
     filter: none !important;
-    /* The enter class carries its pre-state as a plain declaration, so
-       cancelling the animation alone would leave the surface invisible. */
+    /* The enter/exit classes carry their pre-state as plain declarations, so
+       cancelling the animation alone would strand the surface invisible. */
     opacity: 1 !important;
   }
 }

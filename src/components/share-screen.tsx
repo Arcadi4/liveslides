@@ -35,6 +35,7 @@ interface ShareScreenProps {
   onShared: (shared: SharedDeck) => void;
   onSelectRecentRoom?: (room: RecentRoom) => void;
   fadeOut?: boolean;
+  entering?: boolean;
 }
 
 function ShareActions({
@@ -73,7 +74,12 @@ function ShareActions({
   );
 }
 
-export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: ShareScreenProps) {
+export function ShareScreen({
+  onShared,
+  onSelectRecentRoom,
+  fadeOut = false,
+  entering = false,
+}: ShareScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [deck, setDeck] = useState<PreparedDeck | null>(null);
@@ -134,6 +140,7 @@ export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: S
       <Card
         className="t-home-card w-full max-w-md gap-4 py-5 lg:shrink-0"
         data-fading-out={fadeOut ? "true" : undefined}
+        data-entering={entering ? "true" : undefined}
       >
         <CardHeader>
           <CardTitle className="text-base">Share presentation</CardTitle>
@@ -237,7 +244,11 @@ export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: S
           />
         </CardContent>
       </Card>
-      <RecentPresentations onSelectRoom={onSelectRecentRoom} fadeOut={fadeOut} />
+      <RecentPresentations
+        onSelectRoom={onSelectRecentRoom}
+        fadeOut={fadeOut}
+        entering={entering}
+      />
     </main>
   );
 }
