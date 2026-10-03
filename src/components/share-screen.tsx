@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RecentPresentations } from "@/components/recent-presentations";
+import type { RecentRoom } from "@/recent-rooms";
 import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
 import { rememberName, suggestName } from "@/identity";
 import { cn } from "@/lib/utils";
@@ -31,9 +33,11 @@ type Phase = "idle" | "preparing" | "uploading";
 
 interface ShareScreenProps {
   onShared: (shared: SharedDeck) => void;
+  onSelectRecentRoom?: (room: RecentRoom) => void;
+  fadeOut?: boolean;
 }
 
-export function ShareScreen({ onShared }: ShareScreenProps) {
+export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: ShareScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [deck, setDeck] = useState<PreparedDeck | null>(null);
@@ -90,8 +94,11 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
   const busy = phase !== "idle";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4 sm:p-8">
-      <Card className="w-full max-w-md gap-4 py-5">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 p-4 sm:p-8 lg:flex-row">
+      <Card
+        className="t-home-card w-full max-w-md gap-4 py-5 lg:shrink-0"
+        data-fading-out={fadeOut ? "true" : undefined}
+      >
         <CardHeader>
           <CardTitle className="text-base">Share presentation</CardTitle>
           <CardDescription>
@@ -211,6 +218,7 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
           </div>
         </CardContent>
       </Card>
+      <RecentPresentations onSelectRoom={onSelectRecentRoom} fadeOut={fadeOut} />
     </main>
   );
 }

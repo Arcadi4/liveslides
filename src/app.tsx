@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { loadDeck, type PreparedDeck } from "@/crypto";
 import { rememberName } from "@/identity";
 import { readRoomLink, roomUrl } from "@/links";
+import type { RecentRoom } from "@/recent-rooms";
 import type { RoomLink } from "@/protocol";
 import { LoaderCircleIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -61,7 +62,19 @@ function LiveSlides() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [expired, setExpired] = useState(false);
+  const [isNavigatingToRoom, setIsNavigatingToRoom] = useState(false);
+  const [navigatingFromHome, setNavigatingFromHome] = useState(false);
+  const [initialMeta, setInitialMeta] = useState<{ name?: string; expiresAt?: number } | null>(
+    null,
+  );
   const enteredFromShare = useRef(false);
+  const transitionTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(transitionTimerRef.current ?? undefined);
+    };
+  }, []);
 
   useEffect(() => {
     const onPopState = () => {
@@ -71,6 +84,9 @@ function LiveSlides() {
       setExpiresAt(null);
       setExpired(false);
       setDeck(null);
+      setInitialMeta(null);
+      setIsNavigatingToRoom(false);
+      setNavigatingFromHome(false);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -123,8 +139,40 @@ function LiveSlides() {
     setDeck(null);
     setExpiresAt(null);
     setExpired(false);
+    setInitialMeta(null);
+    setIsNavigatingToRoom(false);
+    setNavigatingFromHome(false);
   };
 
+  const handleSelectRecentRoom = (room: RecentRoom) => {
+    if (isNavigatingToRoom) return;
+    setIsNavigatingToRoom(true);
+    setInitialMeta({ name: room.name, expiresAt: room.expiresAt });
+    setExpiresAt(room.expiresAt);
+
+    // Preload the deck immediately during the fade out transition
+    const controller = new AbortController();
+    loadDeck(room, controller.signal)
+      .then((loaded) => setDeck(loaded))
+      .catch(() => {});
+
+    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = reducedMotion ? 0 : 250;
+
+    transitionTimerRef.current = setTimeout(() => {
+      history.pushState(null, "", roomUrl(room));
+      setLink(room);
+      setIsNavigatingToRoom(false);
+      setNavigatingFromHome(true);
+
+      transitionTimerRef.current = setTimeout(
+        () => {
+          setNavigatingFromHome(false);
+        },
+        reducedMotion ? 0 : 250,
+      );
+    }, duration);
+  };
   const join = (chosen: string) => {
     rememberName(chosen);
     setName(chosen);
@@ -137,7 +185,11 @@ function LiveSlides() {
         detail="The room address in this link is truncated. Ask for the full link and open it again."
       />
     ) : (
-      <ShareScreen onShared={onShared} />
+      <ShareScreen
+        onShared={onShared}
+        onSelectRecentRoom={handleSelectRecentRoom}
+        fadeOut={isNavigatingToRoom}
+      />
     );
   }
 
@@ -154,7 +206,20 @@ function LiveSlides() {
     );
   }
 
-  if (!name) return <JoinScreen onJoin={join} />;
+  if (!name) {
+    return (
+      <JoinScreen
+        link={link}
+        initialRoomName={initialMeta?.name}
+        initialExpiresAt={initialMeta?.expiresAt}
+        deck={deck}
+        onDeckLoaded={setDeck}
+        onJoin={join}
+        onBack={leaveRoom}
+        isEntering={navigatingFromHome}
+      />
+    );
+  }
   if (!deck) return <LoadingScreen />;
 
   return (
