@@ -322,11 +322,13 @@
   --panel-ease: ease-in-out;
 }
 .slide-preview-backdrop .gradient-blur > div {
-  transition: backdrop-filter var(--panel-open-dur) var(--panel-ease);
+  /* Fade each masked layer without changing its blur radius. A large radius
+     stays visibly blurred until the final frames when animated down to zero. */
+  opacity: 1;
+  transition: opacity var(--panel-open-dur) var(--panel-ease);
 }
 [data-motion-open="false"] > .slide-preview-backdrop .gradient-blur > div {
-  backdrop-filter: blur(0) !important;
-  -webkit-backdrop-filter: blur(0) !important;
+  opacity: 0;
   transition-duration: var(--panel-close-dur);
 }
 .slide-preview-dim {
