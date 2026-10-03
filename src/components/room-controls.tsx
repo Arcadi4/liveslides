@@ -1,18 +1,10 @@
 import { ShareDialog } from "@/components/share-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ParticipantsControl } from "@/components/participants-control";
 import { cn } from "@/lib/utils";
 import type { Participant, RoomLink } from "@/protocol";
 import {
@@ -24,7 +16,6 @@ import {
   Minimize2Icon,
   TimerIcon,
   UnlinkIcon,
-  UsersIcon,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -201,56 +192,7 @@ export function RoomControls({
         </Tooltip>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Participants, ${participants.length} in room`}
-          >
-            <span className="relative">
-              <UsersIcon aria-hidden="true" />
-              <span className="absolute -end-1.5 -top-1.5 rounded-full bg-primary px-1 text-[10px] leading-4 font-medium text-primary-foreground tabular-nums">
-                {participants.length}
-              </span>
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60">
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-            {participants.length === 1
-              ? "1 person in the room"
-              : `${participants.length} people in the room`}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {participants.map((participant) => (
-            <DropdownMenuItem
-              key={participant.id}
-              onSelect={(event) => event.preventDefault()}
-              className="gap-2"
-            >
-              <Avatar className="size-6">
-                <AvatarFallback
-                  className="text-[10px] font-medium text-white"
-                  style={{ backgroundColor: participant.color }}
-                >
-                  {participant.name.trim().slice(0, 2).toUpperCase() || "?"}
-                </AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate">{participant.name}</span>
-              {participant.role === "host" && (
-                <Badge variant="secondary" className="px-1.5 text-[10px]">
-                  Host
-                </Badge>
-              )}
-              <Badge variant="outline" className="px-1.5 text-[10px]">
-                {participant.detached ? "Detached" : "Following"}
-              </Badge>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ParticipantsControl participants={participants} />
 
       <ShareDialog link={link} deadline={deadline} />
 
