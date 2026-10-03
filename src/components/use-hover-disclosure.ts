@@ -102,6 +102,7 @@ export function useHoverDisclosure(): HoverDisclosure {
       },
     },
     onOpenChange: (next) => {
+      cancelPendingClose();
       if (!next) pinned.current = false;
       setOpen(next);
     },

@@ -79,12 +79,17 @@ export function TransitionPopover({
       return () => cancelAnimationFrame(frame);
     }
     setPhase((current) => (current === "closed" ? current : "closing"));
-    const declared = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue(
-        motion === "panel" ? "--panel-close-dur" : "--dropdown-close-dur",
-      ),
+    const duration = getComputedStyle(document.documentElement)
+      .getPropertyValue(motion === "panel" ? "--panel-close-dur" : "--dropdown-close-dur")
+      .trim();
+    // Production CSS can minify `350ms` to `.35s`; timers always need milliseconds.
+    const closeMs = parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1000);
+    // transitionend owns normal cleanup. Keep a fallback for interrupted
+    // transitions, and leave a frame margin so a late paint cannot truncate exit.
+    const timeout = setTimeout(
+      () => setPhase("closed"),
+      matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : closeMs + 50,
     );
-    const timeout = setTimeout(() => setPhase("closed"), declared);
     return () => clearTimeout(timeout);
   }, [open, motion]);
 
@@ -117,6 +122,18 @@ export function TransitionPopover({
           className,
         )}
         {...contentProps}
+        onTransitionEnd={(event) => {
+          contentProps?.onTransitionEnd?.(event);
+          if (
+            !open &&
+            phase === "closing" &&
+            event.propertyName === "opacity" &&
+            event.target instanceof Element &&
+            event.target.matches(motion === "panel" ? ".t-panel-slide" : ".t-dropdown")
+          ) {
+            setPhase("closed");
+          }
+        }}
       >
         {mounted && backdrop}
         {mounted &&
