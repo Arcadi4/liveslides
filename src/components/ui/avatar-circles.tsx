@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 interface Avatar {
   id: string;
   imageUrl: string;
-  profileUrl: string;
 }
 interface AvatarCirclesProps {
   className?: string;
@@ -11,11 +10,12 @@ interface AvatarCirclesProps {
   avatarUrls: Avatar[];
 }
 
+/** Non-interactive avatars and overflow count; the enclosing control owns activation. */
 export const AvatarCircles = ({ numPeople, className, avatarUrls }: AvatarCirclesProps) => {
   return (
-    <div className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
+    <span className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
       {avatarUrls.map((url, index) => (
-        <a key={url.id} href={url.profileUrl} target="_blank" rel="noopener noreferrer">
+        <span key={url.id}>
           <img
             className="h-10 w-10 rounded-full border-2 border-white dark:border-gray-800"
             src={url.imageUrl}
@@ -23,16 +23,13 @@ export const AvatarCircles = ({ numPeople, className, avatarUrls }: AvatarCircle
             height={40}
             alt={`Avatar ${index + 1}`}
           />
-        </a>
+        </span>
       ))}
       {(numPeople ?? 0) > 0 && (
-        <a
-          className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-black text-center text-xs font-medium text-white hover:bg-gray-600 dark:border-gray-800 dark:bg-white dark:text-black"
-          href=""
-        >
+        <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-black text-center text-xs font-medium text-white hover:bg-gray-600 dark:border-gray-800 dark:bg-white dark:text-black">
           +{numPeople}
-        </a>
+        </span>
       )}
-    </div>
+    </span>
   );
 };

@@ -79,8 +79,6 @@ export function useHoverDisclosure(): HoverDisclosure {
         setOpen(false);
       },
       onClick: (event) => {
-        // AvatarCircles wraps each circle in a profile link; the room has no
-        // profile pages, so the click is only the disclosure.
         event.preventDefault();
         pin();
       },

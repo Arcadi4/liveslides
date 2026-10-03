@@ -54,12 +54,11 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
           <AvatarCircles
             // Registry defaults are 40px circles stacked 16px apart; the control
             // bar needs a denser row.
-            className="-space-x-2 [&>a]:size-6 [&_img]:size-6"
+            className="-space-x-2 [&>span]:size-6 [&_img]:size-6"
             numPeople={participants.length - visible.length}
             avatarUrls={visible.map((participant) => ({
               id: participant.id,
               imageUrl: monogramUrl(participant),
-              profileUrl: "",
             }))}
           />
         </div>
