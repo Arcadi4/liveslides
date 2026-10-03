@@ -450,5 +450,8 @@
     animation: none !important;
     transform: none !important;
     filter: none !important;
+    /* The enter class carries its pre-state as a plain declaration, so
+       cancelling the animation alone would leave the surface invisible. */
+    opacity: 1 !important;
   }
 }
