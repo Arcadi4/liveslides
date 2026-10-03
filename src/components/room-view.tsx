@@ -88,6 +88,7 @@ export function RoomView({
   }, [navigate, room.slide, room.status, lastSlide]);
 
   const onStagePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "touch" || !document.hasFocus()) return;
     const stage = stageRef.current;
     if (!stage) return;
     const bounds = stage.getBoundingClientRect();
@@ -98,6 +99,18 @@ export function RoomView({
     );
   };
 
+  const onStagePointerLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
+    // Leaving the browser or deactivating its window freezes the last sample.
+    // Only movement elsewhere inside the active page hides the stage cursor.
+    if (
+      event.relatedTarget === null ||
+      !document.hasFocus() ||
+      document.visibilityState !== "visible"
+    )
+      return;
+    moveCursor(null, null);
+  };
+
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-neutral-950">
       <SlideView
@@ -105,7 +118,7 @@ export function RoomView({
         index={room.slide}
         stageRef={stageRef}
         onStagePointerMove={onStagePointerMove}
-        onStagePointerLeave={() => moveCursor(null, null)}
+        onStagePointerLeave={onStagePointerLeave}
         overlay={
           <CursorLayer
             cursors={room.cursors}

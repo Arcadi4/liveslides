@@ -13,6 +13,8 @@ interface CursorLayerProps {
 /**
  * Draws spring-smoothed cursors in slide-pixel coordinates. A shared resize
  * observer keeps the physics units aligned with the displayed slide.
+ * Cursors only appear when the owner is on the same slide. Idle windows keep
+ * their last sample; leaving or disconnecting removes the owner's presence.
  */
 export function CursorLayer({ cursors, participants, selfId, slide }: CursorLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +42,7 @@ export function CursorLayer({ cursors, participants, selfId, slide }: CursorLaye
         {[...cursors].map(([id, cursor]) => {
           const participant = byId.get(id);
           if (!participant || id === selfId) return null;
-          if (cursor.slide !== slide) return null;
+          if (participant.slide !== slide || cursor.slide !== slide) return null;
           if (cursor.x === null || cursor.y === null || size.width === 0 || size.height === 0)
             return null;
           return (
