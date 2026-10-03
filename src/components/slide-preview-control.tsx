@@ -7,12 +7,7 @@ import { TransitionPopover } from "@/components/transition-popover";
 import { useHoverDisclosure } from "@/components/use-hover-disclosure";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi,
-} from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, useCarousel } from "@/components/ui/carousel";
 import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -61,6 +56,17 @@ function SlideThumbnail({
   );
 }
 
+/** Keep slide navigation inside the provider that owns the carousel API. */
+function ScrollToSlide({ slide }: { slide: number }) {
+  const { api } = useCarousel();
+
+  useEffect(() => {
+    api?.scrollTo(slide, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, [api, slide]);
+
+  return null;
+}
+
 function PreviewStrip({
   presentation,
   slide,
@@ -69,23 +75,17 @@ function PreviewStrip({
   canNavigate,
   onNavigate,
 }: SlidePreviewControlProps) {
-  const [api, setApi] = useState<CarouselApi>();
   const initialSlide = useRef(slide);
   const [plugins] = useState(() => [
     WheelGesturesPlugin(),
     { ...WheelGesturesPlugin({ forceWheelAxis: "y" }), name: "verticalWheelGestures" },
   ]);
 
-  useEffect(() => {
-    api?.scrollTo(slide, matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, [api, slide]);
-
   return (
     <Carousel
       data-slide-carousel
       aria-label="Slide thumbnails"
       className="dark relative z-20 w-full text-foreground"
-      setApi={setApi}
       opts={{ align: "center", dragFree: true, startIndex: initialSlide.current }}
       plugins={plugins}
       onKeyDownCapture={(event) => {
@@ -101,6 +101,7 @@ function PreviewStrip({
         onNavigate(next);
       }}
     >
+      <ScrollToSlide slide={slide} />
       <CarouselContent className="ml-0 py-4">
         {presentation.slides.map((previewSlide, index) => {
           const host = index === hostSlide;

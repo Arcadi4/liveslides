@@ -16,7 +16,6 @@ type CarouselProps = {
   opts?: CarouselOptions;
   plugins?: CarouselPlugin;
   orientation?: "horizontal" | "vertical";
-  setApi?: (api: CarouselApi) => void;
 };
 
 type CarouselContextProps = {
@@ -43,7 +42,7 @@ function useCarousel() {
 const Carousel = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & CarouselProps
->(({ orientation = "horizontal", opts, setApi, plugins, className, children, ...props }, ref) => {
+>(({ orientation = "horizontal", opts, plugins, className, children, ...props }, ref) => {
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
@@ -83,14 +82,6 @@ const Carousel = React.forwardRef<
     },
     [scrollPrev, scrollNext],
   );
-
-  React.useEffect(() => {
-    if (!api || !setApi) {
-      return;
-    }
-
-    setApi(api);
-  }, [api, setApi]);
 
   React.useEffect(() => {
     if (!api) {
@@ -233,11 +224,4 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
 );
 CarouselNext.displayName = "CarouselNext";
 
-export {
-  type CarouselApi,
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
-};
+export { useCarousel, Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext };
