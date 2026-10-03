@@ -403,8 +403,8 @@
 
 .t-history-panel[data-fading-out="true"] {
   opacity: 0;
-  filter: blur(2px);
-  transform: translateY(8px);
+  filter: blur(var(--blur-medium));
+  transform: translateY(var(--distance-base));
   pointer-events: none;
 }
 
@@ -421,15 +421,15 @@
 
 .t-home-card[data-fading-out="true"] {
   opacity: 0;
-  filter: blur(2px);
+  filter: blur(var(--blur-medium));
   transform: scale(0.98);
   pointer-events: none;
 }
 
 .t-join-page-enter {
   opacity: 0;
-  filter: blur(2px);
-  transform: translateY(8px);
+  filter: blur(var(--blur-medium));
+  transform: translateY(var(--distance-base));
   animation: join-page-enter var(--home-transition-dur) var(--home-transition-ease) forwards;
   will-change: opacity, filter, transform;
 }
