@@ -28,8 +28,8 @@ interface ParticipantsControlProps {
 
 /**
  * The room roster: MagicUI's avatar circles, which reveal the same participant
- * list on hover and on click. The circles are the control — no button chrome
- * around them.
+ * list on hover and on click. The circles form a native button without
+ * additional button chrome.
  */
 export function ParticipantsControl({ participants }: ParticipantsControlProps) {
   const disclosure = useHoverDisclosure();
@@ -44,9 +44,8 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
       className="w-64 p-1"
       contentProps={disclosure.surface}
       trigger={
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           aria-label={`Participants, ${participants.length} in the room`}
           className="t-avatar rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           {...disclosure.trigger}
@@ -61,7 +60,7 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
               imageUrl: monogramUrl(participant),
             }))}
           />
-        </div>
+        </button>
       }
     >
       <p className="px-2 py-1.5 text-xs text-muted-foreground">
