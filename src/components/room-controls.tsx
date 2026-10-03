@@ -6,17 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExpiryControl } from "@/components/expiry-control";
 import { ParticipantsControl } from "@/components/participants-control";
+import { SlidePreviewControl } from "@/components/slide-preview-control";
+import type { PresentationData } from "@aiden0z/pptx-renderer";
 import { cn } from "@/lib/utils";
 import type { Participant, RoomLink } from "@/protocol";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Link2Icon,
-  LogOutIcon,
-  Maximize2Icon,
-  Minimize2Icon,
-  UnlinkIcon,
-} from "lucide-react";
+import { Link2Icon, LogOutIcon, Maximize2Icon, Minimize2Icon, UnlinkIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 type Status = "connecting" | "connected" | "reconnecting" | "offline";
@@ -75,7 +69,7 @@ interface RoomControlsProps {
   self: Participant | undefined;
   slide: number;
   hostSlide: number;
-  slideCount: number;
+  presentation: PresentationData;
   link: RoomLink;
   expiresAt: number | null;
   canNavigate: boolean;
@@ -91,7 +85,7 @@ export function RoomControls({
   self,
   slide,
   hostSlide,
-  slideCount,
+  presentation,
   link,
   expiresAt,
   canNavigate,
@@ -114,50 +108,42 @@ export function RoomControls({
   };
 
   const detached = self?.detached ?? false;
-  const position = `${slide + 1} / ${slideCount}`;
   const deadline =
     expiresAt === null
       ? null
       : new Date(expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 
   return (
-    <Card className="pointer-events-auto flex w-fit max-w-[calc(100vw-1rem)] flex-row flex-wrap items-center gap-1 rounded-full p-1 shadow-lg">
-      <IconControl
-        label="Previous slide"
-        onClick={() => onNavigate(slide - 1)}
-        disabled={!canNavigate || slide === 0}
-      >
-        <ChevronLeftIcon aria-hidden="true" />
-      </IconControl>
-      <Badge variant="secondary" className="min-w-14 justify-center font-mono text-xs tabular-nums">
-        {position}
-      </Badge>
-      <IconControl
-        label="Next slide"
-        onClick={() => onNavigate(slide + 1)}
-        disabled={!canNavigate || slide >= slideCount - 1}
-      >
-        <ChevronRightIcon aria-hidden="true" />
-      </IconControl>
+    <Card className="pointer-events-auto relative z-60 flex w-fit max-w-[calc(100vw-1rem)] flex-row flex-wrap items-center gap-1 rounded-full p-1 shadow-lg">
+      <SlidePreviewControl
+        presentation={presentation}
+        slide={slide}
+        hostSlide={hostSlide}
+        detached={detached}
+        canNavigate={canNavigate}
+        onNavigate={onNavigate}
+      />
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
-      <Button
-        type="button"
-        variant={detached ? "secondary" : "ghost"}
-        size="sm"
-        className="gap-1.5"
-        aria-pressed={detached}
-        onClick={detached ? onFollow : onDetach}
-      >
-        {detached ? <UnlinkIcon aria-hidden="true" /> : <Link2Icon aria-hidden="true" />}
-        <span className="hidden sm:inline">{detached ? "Detached" : "Following"}</span>
-      </Button>
-      {detached && (
-        <span className="pr-1 text-xs text-muted-foreground tabular-nums">
-          shared: {hostSlide + 1}
-        </span>
-      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant={detached ? "secondary" : "ghost"}
+            size="icon-sm"
+            aria-label={detached ? "Follow host's slide" : "Detach to browse slides"}
+            aria-pressed={detached}
+            disabled={!canNavigate}
+            onClick={detached ? onFollow : onDetach}
+          >
+            {detached ? <UnlinkIcon aria-hidden="true" /> : <Link2Icon aria-hidden="true" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {detached ? "Follow host's slide" : "Detach to browse slides"}
+        </TooltipContent>
+      </Tooltip>
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 

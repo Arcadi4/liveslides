@@ -117,7 +117,7 @@ export function RoomView({
           self={room.self}
           slide={room.slide}
           hostSlide={room.hostSlide}
-          slideCount={presentation.slides.length}
+          presentation={presentation}
           link={link}
           expiresAt={deadline}
           canNavigate={canNavigate}
