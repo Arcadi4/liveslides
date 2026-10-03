@@ -171,6 +171,12 @@ export function SlidePreviewControl(props: SlidePreviewControlProps) {
         // Hover must leave focus on the dock; keyboard users enter with ArrowUp or Tab.
         onOpenAutoFocus: (event) => event.preventDefault(),
         onCloseAutoFocus: (event) => event.preventDefault(),
+        onInteractOutside: (event) => {
+          // The dock navigation is the preview's anchor, not an outside action.
+          if (event.target instanceof Element && event.target.closest("[data-slide-preview]")) {
+            event.preventDefault();
+          }
+        },
         onFocus: disclosure.trigger.onFocus,
         onBlur: blur,
       }}
