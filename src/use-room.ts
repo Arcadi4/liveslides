@@ -28,6 +28,7 @@ type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "offline";
 
 export interface RoomSession {
   status: ConnectionStatus;
+  presentationName: string | null;
   /** Server-issued deadline in Unix milliseconds, or null until the room reports it. */
   expiresAt: number | null;
   participants: Participant[];
@@ -51,6 +52,7 @@ export function useRoom(
   const onExpired = options.onExpired;
   // Deadlines the room reports win; the seed only stands in until the first report.
   const [serverExpiresAt, setServerExpiresAt] = useState<number | null>(null);
+  const [presentationName, setPresentationName] = useState<string | null>(null);
   const expiresAtRef = useRef<number | null>(seedExpiresAt);
   // Primitive link fields keep the connect effect's dependencies stable.
   const roomId = link?.roomId ?? null;
@@ -89,6 +91,7 @@ export function useRoom(
     setSlide(0);
     setHostSlide(0);
     setServerExpiresAt(null);
+    setPresentationName(null);
     expiresAtRef.current = seedExpiresAt;
     slideRef.current = 0;
     detachedRef.current = false;
@@ -147,6 +150,7 @@ export function useRoom(
         const meta = await fetchRoomMetadata(roomId!, probe.signal);
         if (stopped) return false;
         if (meta === null) return false;
+        setPresentationName(meta.name);
         setDeadline(meta.expiresAt);
         return true;
       } catch {
@@ -204,6 +208,7 @@ export function useRoom(
               (participant) => participant.id === event.selfId,
             );
             setDeadline(event.room.expiresAt);
+            setPresentationName(event.room.name);
             if (stopped) return;
             const restoreDetached = joined && detachedRef.current;
             setSelfId(event.selfId);
@@ -368,6 +373,7 @@ export function useRoom(
 
   return {
     status,
+    presentationName,
     expiresAt: serverExpiresAt ?? seedExpiresAt,
     participants,
     self: participants.find((participant) => participant.id === selfId),

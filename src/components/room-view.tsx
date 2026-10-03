@@ -6,6 +6,7 @@ import { useRoom } from "@/use-room";
 import { SlideView } from "@/slide-view";
 import { CursorLayer } from "@/components/cursor-layer";
 import { RoomControls } from "@/components/room-controls";
+import { rememberRoom } from "@/recent-rooms";
 
 type NextSlide = (current: number, last: number) => number;
 
@@ -51,6 +52,24 @@ export function RoomView({
   const lastSlide = presentation.slides.length - 1;
   const canNavigate = room.status === "connected";
   const { navigate, moveCursor } = room;
+  const remembered = useRef(false);
+
+  useEffect(() => {
+    if (!canNavigate || deadline === null || room.presentationName === null || remembered.current)
+      return;
+    remembered.current = true;
+    const joinedAt = Date.now();
+    const entry = {
+      ...link,
+      name: Array.from(room.presentationName).slice(0, 120).join(""),
+      expiresAt: deadline,
+    };
+    void rememberRoom({ ...entry, thumbnail: "" }, joinedAt);
+    void import("@/thumbnail")
+      .then(({ createThumbnail }) => createThumbnail(presentation))
+      .catch(() => "")
+      .then((thumbnail) => rememberRoom({ ...entry, thumbnail }, joinedAt));
+  }, [canNavigate, deadline, room.presentationName, link, presentation]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

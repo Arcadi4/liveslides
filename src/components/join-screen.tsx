@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { suggestName } from "@/identity";
 import { ArrowRightIcon } from "lucide-react";
 import { useState } from "react";
+import { RecentPresentations } from "@/components/recent-presentations";
 
 interface JoinScreenProps {
   onJoin: (name: string) => void;
@@ -14,8 +15,8 @@ export function JoinScreen({ onJoin }: JoinScreenProps) {
   const [name, setName] = useState(suggestName);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4 sm:p-8">
-      <Card className="w-full max-w-sm gap-4 py-5">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 p-4 sm:p-8 lg:flex-row">
+      <Card className="w-full max-w-sm gap-4 py-5 lg:shrink-0">
         <CardHeader>
           <CardTitle className="text-base">Join presentation</CardTitle>
           <CardDescription>
@@ -52,6 +53,7 @@ export function JoinScreen({ onJoin }: JoinScreenProps) {
           </form>
         </CardContent>
       </Card>
+      <RecentPresentations />
     </main>
   );
 }

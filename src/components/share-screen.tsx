@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RecentPresentations } from "@/components/recent-presentations";
 import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
 import { rememberName, suggestName } from "@/identity";
 import { cn } from "@/lib/utils";
@@ -90,8 +91,8 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
   const busy = phase !== "idle";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4 sm:p-8">
-      <Card className="w-full max-w-md gap-4 py-5">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-8 p-4 sm:p-8 lg:flex-row">
+      <Card className="w-full max-w-md gap-4 py-5 lg:shrink-0">
         <CardHeader>
           <CardTitle className="text-base">Share presentation</CardTitle>
           <CardDescription>
@@ -211,6 +212,7 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
           </div>
         </CardContent>
       </Card>
+      <RecentPresentations />
     </main>
   );
 }
