@@ -162,7 +162,7 @@ export function SlidePreviewControl(props: SlidePreviewControlProps) {
           <div className="slide-preview-dim absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
         </div>
       }
-      className="w-[calc(100vw-2rem)] border-0 bg-transparent p-0 shadow-none"
+      className="slide-preview-surface w-[calc(100vw-2rem)] border-0 bg-transparent p-0 shadow-none"
       contentProps={{
         ...disclosure.surface,
         ref: surfaceRef,

@@ -314,6 +314,13 @@
 }
 
 /* The backdrop stays outside the opacity/filter animation so it samples the slide. */
+.slide-preview-surface {
+  --panel-translate-y: 24px;
+}
+.slide-preview-surface[data-motion-open="false"] {
+  /* Keep the exit visible at the start instead of immediately dropping behind the dock. */
+  --panel-ease: ease-in-out;
+}
 .slide-preview-backdrop .gradient-blur > div {
   transition: backdrop-filter var(--panel-open-dur) var(--panel-ease);
 }
