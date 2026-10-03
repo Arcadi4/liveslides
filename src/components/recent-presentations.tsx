@@ -1,62 +1,20 @@
-import { useEffect, useRef, useState } from "react";
-import type { PresentationData } from "@aiden0z/pptx-renderer";
-import { PresentationIcon } from "lucide-react";
-import { loadDeck } from "@/crypto";
-import { readRecentRooms, type RecentRoom } from "@/recent-rooms";
+import { useEffect, useState } from "react";
 import { roomUrl } from "@/links";
-import { SlideView } from "@/slide-view";
+import { readRecentRooms, type RecentRoom } from "@/recent-rooms";
+import { PresentationPreview } from "@/components/presentation-preview";
+import { cn } from "@/lib/utils";
 
-function SlidePlaceholder() {
-  return (
-    <div className="flex size-full items-center justify-center text-muted-foreground">
-      <PresentationIcon className="size-8" aria-hidden="true" />
-    </div>
-  );
+interface RecentPresentationsProps {
+  className?: string;
+  onSelectRoom?: (room: RecentRoom) => void;
+  fadeOut?: boolean;
 }
 
-/**
- * Draws the room's first slide with the renderer the carousel uses, so the
- * history keeps a real preview without storing one. The deck loads only once
- * the card is on screen; a room the server has dropped keeps the placeholder.
- */
-function RoomPreview({ roomId, secret }: { roomId: string; secret: string }) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [deck, setDeck] = useState<PresentationData | null>(null);
-
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const controller = new AbortController();
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        observer.disconnect();
-        loadDeck({ roomId, secret }, controller.signal).then(setDeck, () => {
-          // Unavailable decks leave the placeholder in place.
-        });
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(frame);
-    return () => {
-      observer.disconnect();
-      controller.abort();
-    };
-  }, [roomId, secret]);
-
-  return (
-    <div ref={frameRef} className="size-full">
-      {deck ? (
-        <SlideView presentation={deck} index={0} stageRef={stageRef} />
-      ) : (
-        <SlidePlaceholder />
-      )}
-    </div>
-  );
-}
-
-export function RecentPresentations() {
+export function RecentPresentations({
+  className,
+  onSelectRoom,
+  fadeOut = false,
+}: RecentPresentationsProps = {}) {
   const [rooms, setRooms] = useState<RecentRoom[]>([]);
   const [now, setNow] = useState(Date.now);
 
@@ -93,50 +51,49 @@ export function RecentPresentations() {
   if (!rooms.length) return null;
 
   return (
-    <aside aria-label="Recent presentations" className="w-full max-w-md lg:w-72 lg:shrink-0">
+    <aside
+      aria-label="Recent presentations"
+      className={cn("t-history-panel w-full max-w-md lg:w-72 lg:shrink-0", className)}
+      data-fading-out={fadeOut ? "true" : undefined}
+    >
       <h2 className="mb-3 text-sm font-medium">Recent presentations</h2>
       <ul className="flex flex-col gap-4">
         {rooms.map((room) => {
           const expired = room.expiresAt <= now;
-          const content = (
-            <>
-              <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-                {expired ? (
-                  <SlidePlaceholder />
-                ) : (
-                  <RoomPreview roomId={room.roomId} secret={room.secret} />
-                )}
-                {expired && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 px-3 text-center text-sm font-medium text-white">
-                    Presentation Expired
-                  </div>
-                )}
-              </div>
-              <p className="mt-1.5 truncate text-sm font-medium" title={room.name}>
-                {room.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {expired ? "Expired" : "Expires"}{" "}
-                <time dateTime={new Date(room.expiresAt).toISOString()}>
-                  {new Date(room.expiresAt).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </time>
-              </p>
-            </>
+          const preview = (
+            <PresentationPreview
+              roomId={room.roomId}
+              secret={room.secret}
+              name={room.name}
+              expiresAt={room.expiresAt}
+              lazy
+            />
           );
           return (
             <li key={room.roomId}>
               {expired ? (
-                <div>{content}</div>
+                <div>{preview}</div>
               ) : (
                 <a
                   href={roomUrl(room)}
-                  className="block rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  onClick={(event) => {
+                    if (
+                      event.defaultPrevented ||
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.altKey ||
+                      event.shiftKey
+                    ) {
+                      return;
+                    }
+                    event.preventDefault();
+                    onSelectRoom?.(room);
+                  }}
+                  className="block rounded-lg outline-none transition-opacity hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   aria-label={`Rejoin ${room.name}`}
                 >
-                  {content}
+                  {preview}
                 </a>
               )}
             </li>
