@@ -44,12 +44,57 @@ function LinkRow({ id, label, hint, url }: LinkRowProps) {
           type="button"
           variant="outline"
           size="sm"
+          // The `sm` variant tightens padding via `has-[>svg]:px-2.5`; the
+          // swapped icons now sit one level deeper, so match on any descendant.
+          className="has-[_svg]:px-2.5"
           onClick={() => {
             void navigator.clipboard.writeText(url).then(() => setCopied(true));
           }}
         >
-          {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
-          {copied ? "Copied" : "Copy"}
+          {/* The icon and the label each cross-fade between two stacked
+              layers. Overlapping them in a grid keeps the hidden layer out of
+              normal flow, so the button never resizes mid-swap. */}
+          <span className="grid [&>*]:col-start-1 [&>*]:row-start-1 [&>*]:items-center">
+            <span
+              aria-hidden="true"
+              className="flex items-center transition-[opacity,filter] duration-[var(--duration-fast)] ease-[var(--ease-in-out)]"
+              style={{
+                opacity: copied ? 0 : 1,
+                filter: copied ? "blur(var(--blur-small))" : "blur(0)",
+              }}
+            >
+              <CopyIcon />
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex items-center transition-[opacity,filter] duration-[var(--duration-fast)] ease-[var(--ease-in-out)]"
+              style={{
+                opacity: copied ? 1 : 0,
+                filter: copied ? "blur(0)" : "blur(var(--blur-small))",
+              }}
+            >
+              <CheckIcon />
+            </span>
+          </span>
+          <span className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+            <span
+              aria-hidden="true"
+              className="transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-in-out)]"
+              style={{ opacity: copied ? 0 : 1 }}
+            >
+              Copy
+            </span>
+            <span
+              aria-hidden="true"
+              className="transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-in-out)]"
+              style={{ opacity: copied ? 1 : 0 }}
+            >
+              Copied
+            </span>
+          </span>
+          <span role="status" aria-live="polite" className="sr-only">
+            {copied ? "Copied" : "Copy"}
+          </span>
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">{hint}</p>
