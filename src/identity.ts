@@ -2,10 +2,10 @@ const STORAGE_KEY = "liveslides:name";
 
 const FALLBACK = "Guest";
 
-/** The display name is a convenience only, so it stays in sessionStorage. */
+/** The display name is a device-level convenience, so it outlives the tab. */
 export function suggestName(): string {
   try {
-    return sessionStorage.getItem(STORAGE_KEY) ?? FALLBACK;
+    return localStorage.getItem(STORAGE_KEY)?.trim() || FALLBACK;
   } catch {
     return FALLBACK;
   }
@@ -13,7 +13,7 @@ export function suggestName(): string {
 
 export function rememberName(name: string): void {
   try {
-    sessionStorage.setItem(STORAGE_KEY, name);
+    localStorage.setItem(STORAGE_KEY, name);
   } catch {
     // Private-mode storage refusals must not block joining.
   }
