@@ -37,6 +37,42 @@ interface ShareScreenProps {
   fadeOut?: boolean;
 }
 
+function ShareActions({
+  phase,
+  disabled,
+  slideCount,
+  onShare,
+}: {
+  phase: Phase;
+  disabled: boolean;
+  slideCount?: number;
+  onShare: () => void;
+}) {
+  const uploading = phase === "uploading";
+
+  return (
+    <div className="flex items-center gap-3">
+      <Button className="flex-1" disabled={disabled} onClick={onShare}>
+        {uploading ? (
+          <LoaderCircleIcon className="animate-spin" aria-hidden="true" />
+        ) : (
+          <PresentationIcon aria-hidden="true" />
+        )}
+        {uploading ? "Uploading…" : "Share"}
+      </Button>
+      <span aria-live="polite" className="text-xs text-muted-foreground">
+        {phase === "preparing"
+          ? "Preparing and encrypting…"
+          : uploading
+            ? "Uploading…"
+            : slideCount !== undefined
+              ? `${slideCount} slides ready`
+              : ""}
+      </span>
+    </div>
+  );
+}
+
 export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: ShareScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -193,29 +229,12 @@ export function ShareScreen({ onShared, onSelectRecentRoom, fadeOut = false }: S
             </p>
           )}
 
-          <div className="flex items-center gap-3">
-            <Button
-              className="flex-1"
-              disabled={!deck || !name.trim() || busy}
-              onClick={() => void share()}
-            >
-              {phase === "uploading" ? (
-                <LoaderCircleIcon className="animate-spin" aria-hidden="true" />
-              ) : (
-                <PresentationIcon aria-hidden="true" />
-              )}
-              {phase === "uploading" ? "Uploading…" : "Share"}
-            </Button>
-            <span aria-live="polite" className="text-xs text-muted-foreground">
-              {phase === "preparing"
-                ? "Preparing and encrypting…"
-                : phase === "uploading"
-                  ? "Uploading…"
-                  : deck
-                    ? `${deck.presentation.slides.length} slides ready`
-                    : ""}
-            </span>
-          </div>
+          <ShareActions
+            phase={phase}
+            disabled={!deck || !name.trim() || busy}
+            slideCount={deck?.presentation.slides.length}
+            onShare={() => void share()}
+          />
         </CardContent>
       </Card>
       <RecentPresentations onSelectRoom={onSelectRecentRoom} fadeOut={fadeOut} />
