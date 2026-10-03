@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { ArrowRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { suggestName } from "@/identity";
+import { ArrowRightIcon } from "lucide-react";
+import { useState } from "react";
 
 interface JoinScreenProps {
   onJoin: (name: string) => void;
@@ -19,8 +19,9 @@ export function JoinScreen({ onJoin }: JoinScreenProps) {
         <CardHeader>
           <CardTitle className="text-base">Join presentation</CardTitle>
           <CardDescription>
-            The deck is encrypted in your browser and the decryption key travels inside this link.
-            Pick a name so others can see your cursor.
+            The slide in encrypted end-to-end. Only the people in the room have access to its
+            content. Not even the server can read it. Pick a name so othre audiences know who you
+            are!
           </CardDescription>
         </CardHeader>
         <CardContent>
