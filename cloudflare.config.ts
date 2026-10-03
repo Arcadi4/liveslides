@@ -5,7 +5,6 @@ export default defineConfig({
     name: "liveslides",
     entrypoint: "./worker/index.ts",
     compatibilityDate: "2026-09-30",
-    domains: ["slides.arcadia.moe"],
     assets: {
       notFoundHandling: "single-page-application",
       runWorkerFirst: ["/api/*"],
@@ -15,6 +14,9 @@ export default defineConfig({
       issues: { enabled: true },
       logs: { enabled: true },
       traces: { enabled: true },
+    },
+    placement: {
+      mode: "smart",
     },
     env: {
       ASSETS: bindings.assets(),

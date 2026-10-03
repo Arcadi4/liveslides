@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "build:preview": "CLOUDFLARE_PREVIEW_BUILD=true vp build",
+    "deploy": "cf deploy --prebuilt",
+    "deploy:preview": "cf previews deploy --prebuilt"
+  },
   "dependencies": {
     "@aiden0z/pptx-renderer": "^1.3.0",
     "@radix-ui/react-avatar": "^1.2.6",
