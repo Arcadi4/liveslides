@@ -8,6 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { QrCode } from "@/components/ui/qr-code";
 import { roomUrl } from "@/links";
 import type { RoomLink } from "@/protocol";
 import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react";
@@ -64,6 +65,7 @@ interface ShareDialogProps {
 }
 
 export function ShareDialog({ link, deadline }: ShareDialogProps) {
+  const audienceUrl = roomUrl({ roomId: link.roomId, secret: link.secret });
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -71,7 +73,7 @@ export function ShareDialog({ link, deadline }: ShareDialogProps) {
           <Share2Icon aria-hidden="true" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Share this presentation</DialogTitle>
           <DialogDescription>
@@ -79,27 +81,37 @@ export function ShareDialog({ link, deadline }: ShareDialogProps) {
             can view the deck.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <LinkRow
-            id="share-audience-link"
-            label="Audience link"
-            hint="Viewers follow the shared slide until they detach."
-            url={roomUrl({ roomId: link.roomId, secret: link.secret })}
-          />
-          {link.hostKey && (
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
             <LinkRow
-              id="share-host-link"
-              label="Host link"
-              hint="Hosts start out attached and can advance the shared slide."
-              url={roomUrl(link)}
+              id="share-audience-link"
+              label="Audience link"
+              hint="Viewers follow the shared slide until they detach."
+              url={audienceUrl}
             />
-          )}
+            {link.hostKey && (
+              <LinkRow
+                id="share-host-link"
+                label="Host link"
+                hint="Hosts start out attached and can advance the shared slide."
+                url={roomUrl(link)}
+              />
+            )}
 
-          {deadline && (
-            <p className="text-xs text-muted-foreground">
-              Both links will stop working at {deadline}.
-            </p>
-          )}
+            {deadline && (
+              <p className="text-xs text-muted-foreground">
+                Both links will stop working at {deadline}.
+              </p>
+            )}
+          </div>
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <QrCode
+              value={audienceUrl}
+              className="size-40 rounded-md border p-1.5"
+              aria-label={`QR code for the audience link ${audienceUrl}`}
+            />
+            <p className="text-xs text-muted-foreground">Scan to join as a viewer</p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
