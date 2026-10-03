@@ -14,6 +14,13 @@ import { useEffect, useRef, useState } from "react";
 
 const ROOM_PATH = "/r/";
 
+/**
+ * Swap duration for the Home ↔ Join page transition, in ms. Kept in lockstep
+ * with --home-transition-dur in style.css: the JS timer unmounts one surface
+ * exactly as its animation ends, so the two must agree.
+ */
+const HOME_TRANSITION_MS = 250;
+
 /** A room-looking path that does not parse means the link was truncated. */
 function isBrokenRoomPath() {
   return location.pathname.startsWith(ROOM_PATH) && readRoomLink() === null;
@@ -64,6 +71,8 @@ function LiveSlides() {
   const [expired, setExpired] = useState(false);
   const [isNavigatingToRoom, setIsNavigatingToRoom] = useState(false);
   const [navigatingFromHome, setNavigatingFromHome] = useState(false);
+  const [leavingToHome, setLeavingToHome] = useState(false);
+  const [enteringHome, setEnteringHome] = useState(false);
   const [initialMeta, setInitialMeta] = useState<{ name?: string; expiresAt?: number } | null>(
     null,
   );
@@ -87,6 +96,8 @@ function LiveSlides() {
       setInitialMeta(null);
       setIsNavigatingToRoom(false);
       setNavigatingFromHome(false);
+      setLeavingToHome(false);
+      setEnteringHome(false);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -142,6 +153,25 @@ function LiveSlides() {
     setInitialMeta(null);
     setIsNavigatingToRoom(false);
     setNavigatingFromHome(false);
+    setLeavingToHome(false);
+  };
+
+  /**
+   * Join → Home. The join form animates out, then the home surfaces animate in
+   * from the pose they left on. Mirrors handleSelectRecentRoom, which fades the
+   * home out before swapping to the join page.
+   */
+  const backToHome = () => {
+    if (leavingToHome) return;
+    setLeavingToHome(true);
+    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : HOME_TRANSITION_MS;
+    transitionTimerRef.current = setTimeout(() => {
+      setEnteringHome(true);
+      leaveRoom();
+      transitionTimerRef.current = setTimeout(() => setEnteringHome(false), duration);
+    }, duration);
   };
 
   const handleSelectRecentRoom = (room: RecentRoom) => {
@@ -156,8 +186,9 @@ function LiveSlides() {
       .then((loaded) => setDeck(loaded))
       .catch(() => {});
 
-    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const duration = reducedMotion ? 0 : 250;
+    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? 0
+      : HOME_TRANSITION_MS;
 
     transitionTimerRef.current = setTimeout(() => {
       history.pushState(null, "", roomUrl(room));
@@ -165,12 +196,9 @@ function LiveSlides() {
       setIsNavigatingToRoom(false);
       setNavigatingFromHome(true);
 
-      transitionTimerRef.current = setTimeout(
-        () => {
-          setNavigatingFromHome(false);
-        },
-        reducedMotion ? 0 : 250,
-      );
+      transitionTimerRef.current = setTimeout(() => {
+        setNavigatingFromHome(false);
+      }, duration);
     }, duration);
   };
   const join = (chosen: string) => {
@@ -189,6 +217,7 @@ function LiveSlides() {
         onShared={onShared}
         onSelectRecentRoom={handleSelectRecentRoom}
         fadeOut={isNavigatingToRoom}
+        entering={enteringHome}
       />
     );
   }
@@ -215,8 +244,9 @@ function LiveSlides() {
         deck={deck}
         onDeckLoaded={setDeck}
         onJoin={join}
-        onBack={leaveRoom}
+        onBack={backToHome}
         isEntering={navigatingFromHome}
+        isLeaving={leavingToHome}
       />
     );
   }
