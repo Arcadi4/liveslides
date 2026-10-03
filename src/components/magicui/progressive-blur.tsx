@@ -12,6 +12,14 @@ export interface ProgressiveBlurProps {
   children?: React.ReactNode;
 }
 
+function maskGradient(position: ProgressiveBlurProps["position"], stops: string) {
+  if (position === "both") {
+    return "linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)";
+  }
+  const direction = position === "bottom" ? "to bottom" : "to top";
+  return `linear-gradient(${direction}, ${stops})`;
+}
+
 export function ProgressiveBlur({
   className,
   height = "30%",
@@ -20,6 +28,11 @@ export function ProgressiveBlur({
 }: ProgressiveBlurProps) {
   // Create array with length equal to blurLevels.length - 2 (for before/after pseudo elements)
   const divElements = Array(blurLevels.length - 2).fill(null);
+  const firstMask = maskGradient(
+    position,
+    "rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12.5%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 37.5%",
+  );
+  const lastMask = maskGradient(position, "rgba(0,0,0,0) 87.5%, rgba(0,0,0,1) 100%");
 
   return (
     <div
@@ -39,18 +52,8 @@ export function ProgressiveBlur({
           zIndex: 1,
           backdropFilter: `blur(${blurLevels[0]}px)`,
           WebkitBackdropFilter: `blur(${blurLevels[0]}px)`,
-          maskImage:
-            position === "bottom"
-              ? `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12.5%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 37.5%)`
-              : position === "top"
-                ? `linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12.5%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 37.5%)`
-                : `linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)`,
-          WebkitMaskImage:
-            position === "bottom"
-              ? `linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12.5%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 37.5%)`
-              : position === "top"
-                ? `linear-gradient(to top, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12.5%, rgba(0,0,0,1) 25%, rgba(0,0,0,0) 37.5%)`
-                : `linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)`,
+          maskImage: firstMask,
+          WebkitMaskImage: firstMask,
         }}
       />
 
@@ -61,12 +64,10 @@ export function ProgressiveBlur({
         const midPercent = (blurIndex + 1) * 12.5;
         const endPercent = (blurIndex + 2) * 12.5;
 
-        const maskGradient =
-          position === "bottom"
-            ? `linear-gradient(to bottom, rgba(0,0,0,0) ${startPercent}%, rgba(0,0,0,1) ${midPercent}%, rgba(0,0,0,1) ${endPercent}%, rgba(0,0,0,0) ${endPercent + 12.5}%)`
-            : position === "top"
-              ? `linear-gradient(to top, rgba(0,0,0,0) ${startPercent}%, rgba(0,0,0,1) ${midPercent}%, rgba(0,0,0,1) ${endPercent}%, rgba(0,0,0,0) ${endPercent + 12.5}%)`
-              : `linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)`;
+        const mask = maskGradient(
+          position,
+          `rgba(0,0,0,0) ${startPercent}%, rgba(0,0,0,1) ${midPercent}%, rgba(0,0,0,1) ${endPercent}%, rgba(0,0,0,0) ${endPercent + 12.5}%`,
+        );
 
         return (
           <div
@@ -76,8 +77,8 @@ export function ProgressiveBlur({
               zIndex: index + 2,
               backdropFilter: `blur(${blurLevels[blurIndex]}px)`,
               WebkitBackdropFilter: `blur(${blurLevels[blurIndex]}px)`,
-              maskImage: maskGradient,
-              WebkitMaskImage: maskGradient,
+              maskImage: mask,
+              WebkitMaskImage: mask,
             }}
           />
         );
@@ -90,18 +91,8 @@ export function ProgressiveBlur({
           zIndex: blurLevels.length,
           backdropFilter: `blur(${blurLevels[blurLevels.length - 1]}px)`,
           WebkitBackdropFilter: `blur(${blurLevels[blurLevels.length - 1]}px)`,
-          maskImage:
-            position === "bottom"
-              ? `linear-gradient(to bottom, rgba(0,0,0,0) 87.5%, rgba(0,0,0,1) 100%)`
-              : position === "top"
-                ? `linear-gradient(to top, rgba(0,0,0,0) 87.5%, rgba(0,0,0,1) 100%)`
-                : `linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)`,
-          WebkitMaskImage:
-            position === "bottom"
-              ? `linear-gradient(to bottom, rgba(0,0,0,0) 87.5%, rgba(0,0,0,1) 100%)`
-              : position === "top"
-                ? `linear-gradient(to top, rgba(0,0,0,0) 87.5%, rgba(0,0,0,1) 100%)`
-                : `linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,1) 5%, rgba(0,0,0,1) 95%, rgba(0,0,0,0) 100%)`,
+          maskImage: lastMask,
+          WebkitMaskImage: lastMask,
         }}
       />
     </div>
