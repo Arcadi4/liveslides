@@ -15,8 +15,8 @@
  * lag access expiry, and previously downloaded copies cannot be revoked.
  */
 import { DurableObject } from "cloudflare:workers";
-import { MAX_FILE_BYTES, MAX_TTL_SECONDS, ROOM_EXPIRED_CLOSE_CODE } from "../src/protocol.ts";
 import type { ClientEvent, Participant, RoomMetadata, ServerEvent } from "../src/protocol.ts";
+import { MAX_FILE_BYTES, MAX_TTL_SECONDS, ROOM_EXPIRED_CLOSE_CODE } from "../src/protocol.ts";
 
 export interface Env {
   ROOMS: DurableObjectNamespace<SlideRoom>;
@@ -433,7 +433,7 @@ async function createRoom(request: Request, url: URL, env: Env): Promise<Respons
       onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: "application/octet-stream" },
     });
-    if (stored === null) return json({ error: "could not store the deck; please try again" }, 503);
+    if (stored === null) return json({ error: "could not store the slide; please try again" }, 503);
     const body = JSON.stringify({ meta: { name, slideCount, expiresAt }, blobKey });
     for (let attempt = 0; attempt < MAX_ROOM_CANDIDATES; attempt += 1) {
       const roomId = randomToken(ROOM_ID_BYTES);

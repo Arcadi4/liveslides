@@ -73,8 +73,8 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
     } catch (cause) {
       setError(
         cause instanceof Error
-          ? `Couldn't upload the deck: ${cause.message}`
-          : "Couldn't upload the deck. Check your connection and try again.",
+          ? `Couldn't upload the slide: ${cause.message}`
+          : "Couldn't upload the slide. Check your connection and try again.",
       );
       setPhase("idle");
     }
@@ -95,8 +95,8 @@ export function ShareScreen({ onShared }: ShareScreenProps) {
         <CardHeader>
           <CardTitle className="text-base">Share presentation</CardTitle>
           <CardDescription>
-            The deck is encrypted locally. No one aside from the people you share the link with can
-            view it, even the server.
+            The slide is encrypted end-to-end. No one aside from the people you share the link with
+            can view it, even the server.
           </CardDescription>
         </CardHeader>
 

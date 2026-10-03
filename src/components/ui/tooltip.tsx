@@ -4,6 +4,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
+const TooltipOpenContext = React.createContext(false);
+
 function TooltipProvider({
   delayDuration = 0,
   ...props
@@ -17,8 +19,26 @@ function TooltipProvider({
   );
 }
 
-function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
-  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
+function Tooltip({
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <TooltipOpenContext value={controlledOpen ?? open}>
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        open={controlledOpen ?? open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          onOpenChange?.(next);
+        }}
+        {...props}
+      />
+    </TooltipOpenContext>
+  );
 }
 
 function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
@@ -31,15 +51,16 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  const open = React.useContext(TooltipOpenContext);
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal forceMount>
       <TooltipPrimitive.Content
+        forceMount
         data-slot="tooltip-content"
+        data-show={open}
+        aria-hidden={!open}
         sideOffset={sideOffset}
-        className={cn(
-          "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-md bg-foreground px-3 py-1.5 text-xs text-balance text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
-          className,
-        )}
+        className={cn("t-tt z-50 text-xs text-balance", className)}
         {...props}
       >
         {children}

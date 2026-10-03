@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { LoaderCircleIcon } from "lucide-react";
-import { loadDeck, type PreparedDeck } from "@/crypto";
-import { readRoomLink, roomUrl } from "@/links";
-import type { RoomLink } from "@/protocol";
-import { rememberName } from "@/identity";
 import { JoinScreen } from "@/components/join-screen";
 import { RoomView } from "@/components/room-view";
 import { ShareScreen, type SharedDeck } from "@/components/share-screen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { loadDeck, type PreparedDeck } from "@/crypto";
+import { rememberName } from "@/identity";
+import { readRoomLink, roomUrl } from "@/links";
+import type { RoomLink } from "@/protocol";
+import { LoaderCircleIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const ROOM_PATH = "/r/";
 
@@ -149,7 +149,7 @@ function LiveSlides() {
     return (
       <NoticeScreen
         title="This presentation has expired or is unavailable"
-        detail="This room is no longer available. Ask the host to share the deck again."
+        detail="This room is no longer available. Ask the host to share the presentation again."
       />
     );
   }
