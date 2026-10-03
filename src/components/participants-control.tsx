@@ -57,6 +57,7 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
             className="-space-x-2 [&>a]:size-6 [&_img]:size-6"
             numPeople={participants.length - visible.length}
             avatarUrls={visible.map((participant) => ({
+              id: participant.id,
               imageUrl: monogramUrl(participant),
               profileUrl: "",
             }))}

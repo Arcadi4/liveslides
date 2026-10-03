@@ -102,11 +102,11 @@ function PreviewStrip({
       }}
     >
       <CarouselContent className="ml-0 py-4">
-        {presentation.slides.map((_, index) => {
+        {presentation.slides.map((previewSlide, index) => {
           const host = index === hostSlide;
           const current = index === slide;
           return (
-            <CarouselItem key={index} className="basis-auto pl-2 sm:pl-3">
+            <CarouselItem key={previewSlide.slidePath} className="basis-auto pl-2 sm:pl-3">
               <Button
                 variant="ghost"
                 className="h-auto w-36 flex-col gap-2 rounded-xl p-2 hover:bg-white/10 sm:w-48"
