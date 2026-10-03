@@ -1,7 +1,7 @@
 "use client";
 
-import { cloneElement, useEffect, useState, type ReactElement, type ReactNode } from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { cloneElement, useLayoutEffect, useState, type ReactElement, type ReactNode } from "react";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,7 +44,10 @@ interface TransitionPopoverProps {
   side?: "top" | "bottom";
   sideOffset?: number;
   className?: string;
-  contentProps?: React.ComponentProps<typeof PopoverPrimitive.Content>;
+  motion?: "dropdown" | "panel";
+  /** Kept outside the animated surface so backdrop filters can sample the page. */
+  backdrop?: ReactNode;
+  contentProps?: React.ComponentProps<typeof PopoverContent>;
 }
 
 export function TransitionPopover({
@@ -57,52 +60,74 @@ export function TransitionPopover({
   side = "top",
   sideOffset = 8,
   className,
+  motion = "dropdown",
+  backdrop,
   contentProps,
 }: TransitionPopoverProps) {
-  const [closing, setClosing] = useState(false);
+  const [phase, setPhase] = useState<"closed" | "opening" | "open" | "closing">("closed");
+  const shown = open && phase === "open";
+  const mounted = open || phase !== "closed";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (open) {
-      setClosing(false);
-      return;
+      setPhase("opening");
+      // Paint the visible rest state before applying the open state. Removing
+      // `hidden` and applying the open class together skips the CSS transition.
+      let frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => setPhase("open"));
+      });
+      return () => cancelAnimationFrame(frame);
     }
-    setClosing(true);
+    setPhase((current) => (current === "closed" ? current : "closing"));
     const declared = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue("--dropdown-close-dur"),
+      getComputedStyle(document.documentElement).getPropertyValue(
+        motion === "panel" ? "--panel-close-dur" : "--dropdown-close-dur",
+      ),
     );
-    const timeout = setTimeout(() => setClosing(false), Number.isFinite(declared) ? declared : 150);
+    const timeout = setTimeout(() => setPhase("closed"), declared);
     return () => clearTimeout(timeout);
-  }, [open]);
+  }, [open, motion]);
 
   return (
-    <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <PopoverPrimitive.Anchor asChild>
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverAnchor asChild>
         {cloneElement(trigger, {
           "aria-expanded": open,
           "aria-haspopup": "dialog",
           "data-state": open ? "open" : "closed",
         })}
-      </PopoverPrimitive.Anchor>
-      <PopoverPrimitive.Portal forceMount>
-        <PopoverPrimitive.Content
-          forceMount
-          side={side}
-          align={align}
-          sideOffset={sideOffset}
-          data-origin={origin}
-          // A force-mounted surface that is neither open nor closing would
-          // otherwise stay visible to hit-testing and assistive tech.
-          hidden={!open && !closing}
-          className={cn(
-            "t-dropdown z-50 w-64 rounded-lg border bg-popover p-2 text-popover-foreground shadow-lg outline-hidden",
-            open ? "is-open" : closing ? "is-closing" : null,
-            className,
-          )}
-          {...contentProps}
-        >
-          {open || closing ? children : null}
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+      </PopoverAnchor>
+      <PopoverContent
+        forceMount
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        data-origin={origin}
+        data-motion-open={shown}
+        // A force-mounted surface that is neither open nor closing would
+        // otherwise stay visible to hit-testing and assistive tech.
+        hidden={!mounted}
+        aria-hidden={!open}
+        inert={!open}
+        className={cn(
+          "z-50 w-64 rounded-lg border bg-popover p-2 text-popover-foreground shadow-lg outline-hidden",
+          motion === "dropdown" && "t-dropdown",
+          motion === "dropdown" && (shown ? "is-open" : !open && mounted ? "is-closing" : null),
+          !shown && "pointer-events-none",
+          className,
+        )}
+        {...contentProps}
+      >
+        {mounted && backdrop}
+        {mounted &&
+          (motion === "panel" ? (
+            <div className="t-panel-slide relative z-20" data-open={shown}>
+              {children}
+            </div>
+          ) : (
+            children
+          ))}
+      </PopoverContent>
+    </Popover>
   );
 }

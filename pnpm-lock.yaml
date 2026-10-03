@@ -211,6 +211,12 @@ importers:
       cn:
         specifier: ^0.4.0
         version: 0.4.0
+      embla-carousel-react:
+        specifier: ^8.6.0
+        version: 8.6.0(react@19.3.0)
+      embla-carousel-wheel-gestures:
+        specifier: ^8.1.0
+        version: 8.1.0(embla-carousel@8.6.0)
       lucide-react:
         specifier: ^1.48.0
         version: 1.48.0(react@19.3.0)
@@ -2763,6 +2769,25 @@ packages:
   electron-to-chromium@1.5.443:
     resolution: {integrity: sha512-TDJG36L9A3CWWwZ97HKaE+Iz1sW80pNp6sAU0owzCIV3Zc9eVyRqZK8Vz6NKuMIU8WjP0pIkoqCa0VRf/yFD0Q==}
 
+  embla-carousel-react@8.6.0:
+    resolution: {integrity: sha512-0/PjqU7geVmo6F734pmPqpyHqiM99olvyecY7zdweCw+6tKEXnrE90pBiBbMMU8s5tICemzpQ3hi5EpxzGW+JA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.1 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+
+  embla-carousel-reactive-utils@8.6.0:
+    resolution: {integrity: sha512-fMVUDUEx0/uIEDM0Mz3dHznDhfX+znCCDCeIophYb1QGVM7YThSWX+wz11zlYwWFOr74b4QLGg0hrGPJeG2s4A==}
+    peerDependencies:
+      embla-carousel: 8.6.0
+
+  embla-carousel-wheel-gestures@8.1.0:
+    resolution: {integrity: sha512-J68jkYrxbWDmXOm2n2YHl+uMEXzkGSKjWmjaEgL9xVvPb3HqVmg6rJSKfI3sqIDVvm7mkeTy87wtG/5263XqHQ==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      embla-carousel: ^8.0.0 || ~8.0.0-rc03
+
+  embla-carousel@8.6.0:
+    resolution: {integrity: sha512-SjWyZBHJPbqxHOzckOfo8lHisEaJWmwd23XppYFYVh10bU66/Pn5tkVkbkCMZVdbUE5eTCI2nD8OyIP4Z+uwkA==}
+
   enhanced-resolve@5.26.0:
     resolution: {integrity: sha512-9vhedylFonb2YGogzUKX6+Ja72gOJbN1QHAqdrvqLwhdl/QWbKopzoUC9EbQNVsAns/bx/4uyqalrQAoy1IByw==}
     engines: {node: '>=10.13.0'}
@@ -3669,6 +3694,10 @@ packages:
         optional: true
       jsdom:
         optional: true
+
+  wheel-gestures@2.3.0:
+    resolution: {integrity: sha512-6b+PIXuKIy0ibVnF04GoijGKGIDwjlYSK7bCgicuQwPLivfjoLeCCK0bwbjyOdrStDTNPlyGFixIj0d0kZzwiQ==}
+    engines: {node: '>=18'}
 
   when-exit@2.1.5:
     resolution: {integrity: sha512-VGkKJ564kzt6Ms1dbgPP/yuIoQCrsFAnRbptpC5wOEsDaNsbCB2bnfnaA8i/vRs5tjUSEOtIuvl9/MyVsvQZCg==}
@@ -5636,6 +5665,23 @@ snapshots:
 
   electron-to-chromium@1.5.443: {}
 
+  embla-carousel-react@8.6.0(react@19.3.0):
+    dependencies:
+      embla-carousel: 8.6.0
+      embla-carousel-reactive-utils: 8.6.0(embla-carousel@8.6.0)
+      react: 19.3.0
+
+  embla-carousel-reactive-utils@8.6.0(embla-carousel@8.6.0):
+    dependencies:
+      embla-carousel: 8.6.0
+
+  embla-carousel-wheel-gestures@8.1.0(embla-carousel@8.6.0):
+    dependencies:
+      embla-carousel: 8.6.0
+      wheel-gestures: 2.3.0
+
+  embla-carousel@8.6.0: {}
+
   enhanced-resolve@5.26.0:
     dependencies:
       graceful-fs: 4.2.11
@@ -6626,6 +6672,8 @@ snapshots:
       '@vitest/ui': 5.0.1(vitest@5.0.1)
     transitivePeerDependencies:
       - msw
+
+  wheel-gestures@2.3.0: {}
 
   when-exit@2.1.5: {}
 

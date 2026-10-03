@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FocusEvent } from "react";
 import type { PresentationData } from "@aiden0z/pptx-renderer";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { ProgressiveBlur } from "@/components/magicui/progressive-blur";
@@ -7,7 +7,13 @@ import { TransitionPopover } from "@/components/transition-popover";
 import { useHoverDisclosure } from "@/components/use-hover-disclosure";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { SlideView } from "@/slide-view";
@@ -37,7 +43,7 @@ function SlideThumbnail({
     const frame = frameRef.current;
     if (!frame) return;
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
-      root: frame.closest('[data-slot="scroll-area-viewport"]'),
+      root: frame.closest("[data-slide-carousel]"),
       rootMargin: "200px",
     });
     observer.observe(frame);
@@ -63,84 +69,44 @@ function PreviewStrip({
   canNavigate,
   onNavigate,
 }: SlidePreviewControlProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const currentRef = useRef<HTMLButtonElement>(null);
+  const [api, setApi] = useState<CarouselApi>();
+  const initialSlide = useRef(slide);
+  const [plugins] = useState(() => [
+    WheelGesturesPlugin(),
+    { ...WheelGesturesPlugin({ forceWheelAxis: "y" }), name: "verticalWheelGestures" },
+  ]);
 
   useEffect(() => {
-    const viewport = scrollRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
-    const current = currentRef.current;
-    if (!(viewport instanceof HTMLElement) || !current) return;
-    viewport.scrollLeft +=
-      current.getBoundingClientRect().left -
-      viewport.getBoundingClientRect().left -
-      (viewport.clientWidth - current.clientWidth) / 2;
-  }, [slide]);
-
-  useEffect(() => {
-    const viewport = scrollRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
-    if (!(viewport instanceof HTMLElement)) return;
-    const onWheel = (event: WheelEvent) => {
-      if (event.ctrlKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
-      if (viewport.scrollWidth <= viewport.clientWidth) return;
-      event.preventDefault();
-      viewport.scrollLeft += event.deltaY * (event.deltaMode === 1 ? 16 : 1);
-    };
-    viewport.addEventListener("wheel", onWheel, { passive: false });
-    return () => viewport.removeEventListener("wheel", onWheel);
-  }, []);
-
-  const moveFocus = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    let next: number;
-    switch (event.key) {
-      case "ArrowLeft":
-        next = Math.max(0, index - 1);
-        break;
-      case "ArrowRight":
-        next = Math.min(presentation.slides.length - 1, index + 1);
-        break;
-      case "Home":
-        next = 0;
-        break;
-      case "End":
-        next = presentation.slides.length - 1;
-        break;
-      default:
-        return;
-    }
-    event.preventDefault();
-    scrollRef.current?.querySelector<HTMLButtonElement>(`[data-slide-index="${next}"]`)?.focus();
-  };
+    api?.scrollTo(slide, matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, [api, slide]);
 
   return (
-    <>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-4 -top-16 -bottom-24"
-      >
-        <ProgressiveBlur height="100%" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/70 to-transparent" />
-      </div>
-      <ScrollArea ref={scrollRef} className="relative z-20 w-full" type="auto">
-        <div className="flex w-max min-w-full justify-center gap-2 px-3 pt-4 pb-5 sm:gap-3">
-          {presentation.slides.map((_, index) => {
-            const host = index === hostSlide;
-            const current = index === slide;
-            return (
+    <Carousel
+      data-slide-carousel
+      aria-label="Slide thumbnails"
+      className="dark relative z-20 w-full text-foreground"
+      setApi={setApi}
+      opts={{ align: "center", dragFree: true, startIndex: initialSlide.current }}
+      plugins={plugins}
+    >
+      <CarouselContent className="ml-0 py-4">
+        {presentation.slides.map((_, index) => {
+          const host = index === hostSlide;
+          const current = index === slide;
+          return (
+            <CarouselItem key={index} className="basis-auto pl-2 sm:pl-3">
               <Button
-                key={index}
-                ref={current ? currentRef : undefined}
                 variant="ghost"
-                className="h-auto w-36 flex-col gap-2 rounded-xl p-2 hover:bg-background/60 sm:w-48"
+                className="h-auto w-36 flex-col gap-2 rounded-xl p-2 hover:bg-white/10 sm:w-48"
                 data-slide-index={index}
                 aria-label={`Slide ${index + 1}${host ? ", host's slide" : ""}${current ? ", your current slide" : ""}`}
                 aria-current={current ? "page" : undefined}
                 disabled={!canNavigate}
                 onClick={() => onNavigate(index)}
-                onKeyDown={(event) => moveFocus(event, index)}
               >
                 <span
                   className={cn(
-                    "relative block w-full overflow-hidden rounded-md bg-background p-1 shadow-lg ring-1 ring-border",
+                    "relative block w-full overflow-hidden rounded-md bg-white p-1 shadow-lg ring-1 ring-white/20",
                     detached && current && "outline-2 outline-offset-2 outline-primary",
                   )}
                   style={{ aspectRatio: presentation.width / presentation.height }}
@@ -160,12 +126,11 @@ function PreviewStrip({
                   {detached && current && <Badge className="px-1.5 text-[10px]">You</Badge>}
                 </span>
               </Button>
-            );
-          })}
-        </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-    </>
+            </CarouselItem>
+          );
+        })}
+      </CarouselContent>
+    </Carousel>
   );
 }
 
@@ -187,7 +152,17 @@ export function SlidePreviewControl(props: SlidePreviewControlProps) {
       open={disclosure.open}
       onOpenChange={disclosure.onOpenChange}
       sideOffset={12}
-      className="isolate w-[calc(100vw-2rem)] border-0 bg-transparent p-0 shadow-none"
+      motion="panel"
+      backdrop={
+        <div
+          aria-hidden="true"
+          className="slide-preview-backdrop pointer-events-none absolute -inset-x-4 -top-16 -bottom-24 z-0"
+        >
+          <ProgressiveBlur height="100%" />
+          <div className="slide-preview-dim absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+        </div>
+      }
+      className="w-[calc(100vw-2rem)] border-0 bg-transparent p-0 shadow-none"
       contentProps={{
         ...disclosure.surface,
         ref: surfaceRef,
