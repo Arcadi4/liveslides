@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PresentationData } from "@aiden0z/pptx-renderer";
 import { PresentationIcon } from "lucide-react";
 import { fetchRoomMetadata, loadDeck } from "@/crypto";
@@ -45,9 +45,12 @@ export function PresentationPreview({
   const frameRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const onDeckLoadedRef = useRef(onDeckLoaded);
-  onDeckLoadedRef.current = onDeckLoaded;
   const onMetaLoadedRef = useRef(onMetaLoaded);
-  onMetaLoadedRef.current = onMetaLoaded;
+
+  useLayoutEffect(() => {
+    onDeckLoadedRef.current = onDeckLoaded;
+    onMetaLoadedRef.current = onMetaLoaded;
+  }, [onDeckLoaded, onMetaLoaded]);
 
   const [internalDeck, setInternalDeck] = useState<PresentationData | null>(null);
   const [loadingDeck, setLoadingDeck] = useState(false);
