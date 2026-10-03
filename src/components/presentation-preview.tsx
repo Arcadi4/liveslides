@@ -31,6 +31,44 @@ export interface PresentationPreviewProps {
   onMetaLoaded?: (meta: RoomMetadata) => void;
 }
 
+function PresentationDetails({
+  name,
+  expiresAt,
+  slideCount,
+  expired,
+}: Pick<PresentationPreviewProps, "name" | "expiresAt"> & {
+  slideCount?: number;
+  expired: boolean;
+}) {
+  const expiration = expiresAt ? new Date(expiresAt) : null;
+
+  return (
+    <>
+      {name ? (
+        <p className="mt-1.5 truncate text-sm font-medium" title={name}>
+          {name}
+        </p>
+      ) : (
+        <div className="mt-1.5 h-5 w-3/4 animate-pulse rounded bg-muted" />
+      )}
+      {expiration ? (
+        <p className="text-xs text-muted-foreground">
+          {slideCount ? `${slideCount} ${slideCount === 1 ? "slide" : "slides"} · ` : ""}
+          {expired ? "Expired" : "Expires"}{" "}
+          <time dateTime={expiration.toISOString()}>
+            {expiration.toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </time>
+        </p>
+      ) : (
+        <div className="mt-1 h-3.5 w-1/2 animate-pulse rounded bg-muted" />
+      )}
+    </>
+  );
+}
+
 export function PresentationPreview({
   roomId,
   secret,
@@ -149,27 +187,12 @@ export function PresentationPreview({
           </div>
         )}
       </div>
-      {displayName ? (
-        <p className="mt-1.5 truncate text-sm font-medium" title={displayName}>
-          {displayName}
-        </p>
-      ) : (
-        <div className="mt-1.5 h-5 w-3/4 animate-pulse rounded bg-muted" />
-      )}
-      {displayExpiresAt ? (
-        <p className="text-xs text-muted-foreground">
-          {slideCount ? `${slideCount} ${slideCount === 1 ? "slide" : "slides"} · ` : ""}
-          {expired ? "Expired" : "Expires"}{" "}
-          <time dateTime={new Date(displayExpiresAt).toISOString()}>
-            {new Date(displayExpiresAt).toLocaleString(undefined, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </time>
-        </p>
-      ) : (
-        <div className="mt-1 h-3.5 w-1/2 animate-pulse rounded bg-muted" />
-      )}
+      <PresentationDetails
+        name={displayName}
+        expiresAt={displayExpiresAt}
+        slideCount={slideCount}
+        expired={expired}
+      />
     </div>
   );
 }
