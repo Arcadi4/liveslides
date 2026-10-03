@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
-/** Hover is a preview, so it waits for intent and closes with a small grace. */
-const HOVER_OPEN_MS = 120;
+/** Hover is a preview, so it waits for intent and closes with a small grace.
+ *  Mirrors the CSS motion tokens: --duration-micro on the open, and the close
+ *  grace stays deliberately longer so a crossing pointer does not dismiss. */
+const HOVER_OPEN_MS = 80;
 const HOVER_CLOSE_MS = 200;
 
 interface HoverSurfaceHandlers {
