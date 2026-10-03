@@ -1,8 +1,60 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { PresentationData } from "@aiden0z/pptx-renderer";
 import { PresentationIcon } from "lucide-react";
+import { loadDeck } from "@/crypto";
 import { readRecentRooms, type RecentRoom } from "@/recent-rooms";
 import { roomUrl } from "@/links";
-import { cn } from "@/lib/utils";
+import { SlideView } from "@/slide-view";
+
+function SlidePlaceholder() {
+  return (
+    <div className="flex size-full items-center justify-center text-muted-foreground">
+      <PresentationIcon className="size-8" aria-hidden="true" />
+    </div>
+  );
+}
+
+/**
+ * Draws the room's first slide with the renderer the carousel uses, so the
+ * history keeps a real preview without storing one. The deck loads only once
+ * the card is on screen; a room the server has dropped keeps the placeholder.
+ */
+function RoomPreview({ roomId, secret }: { roomId: string; secret: string }) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [deck, setDeck] = useState<PresentationData | null>(null);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const controller = new AbortController();
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        loadDeck({ roomId, secret }, controller.signal).then(setDeck, () => {
+          // Unavailable decks leave the placeholder in place.
+        });
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(frame);
+    return () => {
+      observer.disconnect();
+      controller.abort();
+    };
+  }, [roomId, secret]);
+
+  return (
+    <div ref={frameRef} className="size-full">
+      {deck ? (
+        <SlideView presentation={deck} index={0} stageRef={stageRef} />
+      ) : (
+        <SlidePlaceholder />
+      )}
+    </div>
+  );
+}
 
 export function RecentPresentations() {
   const [rooms, setRooms] = useState<RecentRoom[]>([]);
@@ -49,21 +101,10 @@ export function RecentPresentations() {
           const content = (
             <>
               <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-                {room.thumbnail ? (
-                  <img
-                    src={room.thumbnail}
-                    alt=""
-                    className={cn("size-full object-contain", expired && "blur-sm brightness-50")}
-                  />
+                {expired ? (
+                  <SlidePlaceholder />
                 ) : (
-                  <div
-                    className={cn(
-                      "flex size-full items-center justify-center text-muted-foreground",
-                      expired && "bg-black/60",
-                    )}
-                  >
-                    <PresentationIcon className="size-8" aria-hidden="true" />
-                  </div>
+                  <RoomPreview roomId={room.roomId} secret={room.secret} />
                 )}
                 {expired && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 px-3 text-center text-sm font-medium text-white">

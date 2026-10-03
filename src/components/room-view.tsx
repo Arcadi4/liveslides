@@ -64,12 +64,8 @@ export function RoomView({
       name: Array.from(room.presentationName).slice(0, 120).join(""),
       expiresAt: deadline,
     };
-    void rememberRoom({ ...entry, thumbnail: "" }, joinedAt);
-    void import("@/thumbnail")
-      .then(({ createThumbnail }) => createThumbnail(presentation))
-      .catch(() => "")
-      .then((thumbnail) => rememberRoom({ ...entry, thumbnail }, joinedAt));
-  }, [canNavigate, deadline, room.presentationName, link, presentation]);
+    void rememberRoom(entry, joinedAt);
+  }, [canNavigate, deadline, room.presentationName, link]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

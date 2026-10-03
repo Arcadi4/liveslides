@@ -2,7 +2,6 @@ import type { RoomLink } from "@/protocol";
 
 const COOKIE_PREFIX = "liveslides_recent_v1_";
 const KEY_STORAGE = "liveslides:history-key:v1";
-const THUMBNAIL_STORAGE_PREFIX = "liveslides:thumbnail:v1:";
 const HISTORY_LIMIT = 3;
 // History outlives the room so expired presentations remain recognizable.
 const HISTORY_MAX_AGE = 180 * 24 * 60 * 60;
@@ -11,7 +10,6 @@ export interface RecentRoom extends RoomLink {
   name: string;
   expiresAt: number;
   joinedAt: number;
-  thumbnail: string;
 }
 
 function encode(bytes: Uint8Array): string {
@@ -67,14 +65,7 @@ async function readRooms(key: CryptoKey): Promise<RecentRoom[]> {
       try {
         const value = cookies.get(`${COOKIE_PREFIX}${index}`);
         if (!value) return null;
-        const room = JSON.parse(await decrypt(value, key)) as RecentRoom;
-        try {
-          const thumbnail = localStorage.getItem(`${THUMBNAIL_STORAGE_PREFIX}${room.roomId}`);
-          if (thumbnail) room.thumbnail = await decrypt(thumbnail, key);
-        } catch {
-          // A missing or damaged preview must not prevent rejoining a room.
-        }
-        return room;
+        return JSON.parse(await decrypt(value, key)) as RecentRoom;
       } catch {
         // One removed or damaged cookie must not hide the remaining history.
         return null;
@@ -114,18 +105,7 @@ export function rememberRoom(
         .slice(0, HISTORY_LIMIT);
       const values = await Promise.all(
         rooms.map(async (entry) => {
-          // Keep full-resolution previews local; cookies have a 4 KB limit.
-          if (entry.thumbnail) {
-            try {
-              localStorage.setItem(
-                `${THUMBNAIL_STORAGE_PREFIX}${entry.roomId}`,
-                await encrypt(entry.thumbnail, key),
-              );
-            } catch {
-              // Browser quota limits must not prevent saving the room link.
-            }
-          }
-          const value = await encrypt(JSON.stringify({ ...entry, thumbnail: "" }), key);
+          const value = await encrypt(JSON.stringify(entry), key);
           if (value.length > 3800) throw new Error("History cookie exceeds its size limit.");
           return value;
         }),
@@ -133,18 +113,6 @@ export function rememberRoom(
       values.forEach((value, index) => {
         document.cookie = `${COOKIE_PREFIX}${index}=${value}; Path=/; Max-Age=${HISTORY_MAX_AGE}; SameSite=Strict${location.protocol === "https:" ? "; Secure" : ""}`;
       });
-      try {
-        const retained = new Set(
-          rooms.map((entry) => `${THUMBNAIL_STORAGE_PREFIX}${entry.roomId}`),
-        );
-        for (const name of Object.keys(localStorage)) {
-          if (name.startsWith(THUMBNAIL_STORAGE_PREFIX) && !retained.has(name)) {
-            localStorage.removeItem(name);
-          }
-        }
-      } catch {
-        // Cleanup is optional when browser storage is unavailable.
-      }
       window.dispatchEvent(new Event("recent-rooms-change"));
     } catch {
       // Saving history is optional when browser storage is unavailable.
