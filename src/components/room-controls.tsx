@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ExpiryControl } from "@/components/expiry-control";
 import { ParticipantsControl } from "@/components/participants-control";
 import { cn } from "@/lib/utils";
 import type { Participant, RoomLink } from "@/protocol";
@@ -14,7 +15,6 @@ import {
   LogOutIcon,
   Maximize2Icon,
   Minimize2Icon,
-  TimerIcon,
   UnlinkIcon,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -176,21 +176,7 @@ export function RoomControls({
         <TooltipContent>{STATUS_HINT[status]}</TooltipContent>
       </Tooltip>
 
-      {deadline && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span tabIndex={0} className="rounded-full">
-              <Badge variant="outline" className="h-7 gap-1.5 px-2 text-muted-foreground">
-                <TimerIcon className="size-3" aria-hidden="true" />
-                <span className="max-w-36 truncate text-xs font-normal tabular-nums">
-                  {deadline}
-                </span>
-              </Badge>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>The room expires at this time</TooltipContent>
-        </Tooltip>
-      )}
+      {expiresAt !== null && <ExpiryControl expiresAt={expiresAt} />}
 
       <ParticipantsControl participants={participants} />
 
