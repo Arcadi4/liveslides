@@ -7,8 +7,9 @@ import { m, useReducedMotion, useSpring } from "motion/react";
  * Magic UI's sprite and spring physics, driven by remote slide coordinates.
  * Convert normalized samples to slide pixels before measuring velocity or
  * animating: speed and rest thresholds then retain the upstream units.
- * Translation uses compositor transforms; only the sprite rotates and squashes,
- * so the collaborator's colored name stays readable. The native cursor is kept.
+ * Translation uses compositor-friendly transforms without retaining an idle
+ * will-change layer; only the sprite rotates and squashes, so the collaborator's
+ * colored name stays readable. The native cursor is kept.
  * @see https://magicui.design/docs/components/smooth-cursor
  */
 export interface SmoothCursorProps {
@@ -170,7 +171,6 @@ export function SmoothCursor({
         x: cursorX,
         y: cursorY,
         pointerEvents: "none",
-        willChange: "transform",
       }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
