@@ -2,6 +2,7 @@ import type { RoomLink } from "@/protocol";
 
 const COOKIE_PREFIX = "liveslides_recent_v1_";
 const KEY_STORAGE = "liveslides:history-key:v1";
+const THUMBNAIL_STORAGE_PREFIX = "liveslides:thumbnail:v1:";
 const HISTORY_LIMIT = 3;
 // History outlives the room so expired presentations remain recognizable.
 const HISTORY_MAX_AGE = 180 * 24 * 60 * 60;
@@ -14,11 +15,32 @@ export interface RecentRoom extends RoomLink {
 }
 
 function encode(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(""));
 }
 
 function decode(value: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+}
+
+async function encrypt(value: string, key: CryptoKey): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value)),
+  );
+  const bytes = new Uint8Array(iv.length + ciphertext.length);
+  bytes.set(iv);
+  bytes.set(ciphertext, iv.length);
+  return encode(bytes);
+}
+
+async function decrypt(value: string, key: CryptoKey): Promise<string> {
+  const bytes = decode(value);
+  const plaintext = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: bytes.subarray(0, 12) },
+    key,
+    bytes.subarray(12),
+  );
+  return new TextDecoder().decode(plaintext);
 }
 
 /** Only ciphertext travels in cookies; the wrapping key never leaves browser storage. */
@@ -45,13 +67,14 @@ async function readRooms(key: CryptoKey): Promise<RecentRoom[]> {
       try {
         const value = cookies.get(`${COOKIE_PREFIX}${index}`);
         if (!value) return null;
-        const bytes = decode(value);
-        const plaintext = await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv: bytes.subarray(0, 12) },
-          key,
-          bytes.subarray(12),
-        );
-        return JSON.parse(new TextDecoder().decode(plaintext)) as RecentRoom;
+        const room = JSON.parse(await decrypt(value, key)) as RecentRoom;
+        try {
+          const thumbnail = localStorage.getItem(`${THUMBNAIL_STORAGE_PREFIX}${room.roomId}`);
+          if (thumbnail) room.thumbnail = await decrypt(thumbnail, key);
+        } catch {
+          // A missing or damaged preview must not prevent rejoining a room.
+        }
+        return room;
       } catch {
         // One removed or damaged cookie must not hide the remaining history.
         return null;
@@ -91,18 +114,18 @@ export function rememberRoom(
         .slice(0, HISTORY_LIMIT);
       const values = await Promise.all(
         rooms.map(async (entry) => {
-          const iv = crypto.getRandomValues(new Uint8Array(12));
-          const ciphertext = new Uint8Array(
-            await crypto.subtle.encrypt(
-              { name: "AES-GCM", iv },
-              key,
-              new TextEncoder().encode(JSON.stringify(entry)),
-            ),
-          );
-          const bytes = new Uint8Array(iv.length + ciphertext.length);
-          bytes.set(iv);
-          bytes.set(ciphertext, iv.length);
-          const value = encode(bytes);
+          // Keep full-resolution previews local; cookies have a 4 KB limit.
+          if (entry.thumbnail) {
+            try {
+              localStorage.setItem(
+                `${THUMBNAIL_STORAGE_PREFIX}${entry.roomId}`,
+                await encrypt(entry.thumbnail, key),
+              );
+            } catch {
+              // Browser quota limits must not prevent saving the room link.
+            }
+          }
+          const value = await encrypt(JSON.stringify({ ...entry, thumbnail: "" }), key);
           if (value.length > 3800) throw new Error("History cookie exceeds its size limit.");
           return value;
         }),
@@ -110,6 +133,18 @@ export function rememberRoom(
       values.forEach((value, index) => {
         document.cookie = `${COOKIE_PREFIX}${index}=${value}; Path=/; Max-Age=${HISTORY_MAX_AGE}; SameSite=Strict${location.protocol === "https:" ? "; Secure" : ""}`;
       });
+      try {
+        const retained = new Set(
+          rooms.map((entry) => `${THUMBNAIL_STORAGE_PREFIX}${entry.roomId}`),
+        );
+        for (const name of Object.keys(localStorage)) {
+          if (name.startsWith(THUMBNAIL_STORAGE_PREFIX) && !retained.has(name)) {
+            localStorage.removeItem(name);
+          }
+        }
+      } catch {
+        // Cleanup is optional when browser storage is unavailable.
+      }
       window.dispatchEvent(new Event("recent-rooms-change"));
     } catch {
       // Saving history is optional when browser storage is unavailable.

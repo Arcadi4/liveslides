@@ -11,30 +11,17 @@ export async function createThumbnail(presentation: PresentationData): Promise<s
   container.appendChild(handle.element);
   document.body.appendChild(container);
   try {
-    const [{ toCanvas }] = await Promise.all([
-      import("html-to-image"),
-      handle.ready,
-      document.fonts.ready,
-    ]);
-    const source = await toCanvas(handle.element, {
-      canvasWidth: 240,
-      canvasHeight: Math.max(1, Math.round((240 * presentation.height) / presentation.width)),
+    const [{ toCanvas }] = await Promise.all([import("html-to-image"), handle.ready]);
+    await document.fonts.ready;
+    // Cover the widest recent card (448 CSS pixels) at 2x display density.
+    const width = 896;
+    const canvas = await toCanvas(handle.element, {
+      canvasWidth: width,
+      canvasHeight: Math.max(1, Math.round((width * presentation.height) / presentation.width)),
       pixelRatio: 1,
-      backgroundColor: "#fff",
       skipFonts: true,
     });
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    if (!context) return "";
-    // A cookie must fit the preview, room credentials, title, and encryption overhead.
-    for (let width = 240; width >= 30; width = Math.floor(width * 0.75)) {
-      canvas.width = width;
-      canvas.height = Math.max(1, Math.round((width * source.height) / source.width));
-      context.drawImage(source, 0, 0, canvas.width, canvas.height);
-      const thumbnail = canvas.toDataURL("image/webp", 0.45);
-      if (thumbnail.length <= 1800) return thumbnail;
-    }
-    return "";
+    return canvas.toDataURL("image/webp", 0.9);
   } finally {
     handle.dispose();
     container.remove();
