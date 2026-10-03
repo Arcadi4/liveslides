@@ -88,6 +88,18 @@ function PreviewStrip({
       setApi={setApi}
       opts={{ align: "center", dragFree: true, startIndex: initialSlide.current }}
       plugins={plugins}
+      onKeyDownCapture={(event) => {
+        // Override the carousel's arrows with the presentation's page controls.
+        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        if (!canNavigate) return;
+        const next = Math.min(
+          presentation.slides.length - 1,
+          Math.max(0, slide + (event.key === "ArrowRight" ? 1 : -1)),
+        );
+        onNavigate(next);
+      }}
     >
       <CarouselContent className="ml-0 py-4">
         {presentation.slides.map((_, index) => {
