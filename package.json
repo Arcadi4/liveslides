@@ -43,17 +43,14 @@
     "cf": "1.0.0-beta.14",
     "react-doctor": "^0.9.17",
     "typescript": "^7.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
-    "vite-plus": "1.1.0"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "12.8.1",
+      "version": "12.14.0",
       "onFail": "warn"
     }
-  },
-  "engines": {
-    "node": ">=22.18.0"
   }
 }

@@ -1,5 +1,5 @@
 overrides:
-  vite@*: npm:@voidzero-dev/vite-plus-core@1.0.0
+  vite@*: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
@@ -10,3 +10,6 @@ allowBuilds:
   workerd: true
 patchedDependencies:
   "@aiden0z/pptx-renderer@1.3.0": patches/@aiden0z__pptx-renderer@1.3.0.patch
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@1.3.0
+  vite-plus: 1.3.0
