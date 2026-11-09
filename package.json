@@ -6,9 +6,8 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "build:preview": "CLOUDFLARE_PREVIEW_BUILD=true vp build",
-    "deploy": "cf deploy --prebuilt",
-    "deploy:preview": "cf previews deploy --prebuilt"
+    "deploy": "cf deploy --mode production",
+    "deploy:preview": "cf previews deploy --mode production"
   },
   "dependencies": {
     "@aiden0z/pptx-renderer": "^1.3.0",
