@@ -1,4 +1,4 @@
-import { bindings, defineConfig, exports } from "cf/config";
+import { bindings, defineConfig, exports } from "cf/config"
 
 export default defineConfig({
   worker: {
@@ -26,4 +26,4 @@ export default defineConfig({
     // cf provisions the SQLite namespace and tracks its lifecycle; no Wrangler migrations.
     exports: { SlideRoom: exports.durableObject({ storage: "sqlite" }) },
   },
-});
+})

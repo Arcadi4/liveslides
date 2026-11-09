@@ -1,14 +1,15 @@
-import { useEffect, useRef } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
-import type { PresentationData } from "@aiden0z/pptx-renderer";
-import type { RoomLink } from "@/protocol";
-import { useRoom } from "@/use-room";
-import { SlideView } from "@/slide-view";
-import { CursorLayer } from "@/components/cursor-layer";
-import { RoomControls } from "@/components/room-controls";
-import { rememberRoom } from "@/recent-rooms";
+import type { PresentationData } from "@aiden0z/pptx-renderer"
+import { useEffect, useRef } from "react"
+import type { PointerEvent as ReactPointerEvent } from "react"
 
-type NextSlide = (current: number, last: number) => number;
+import { CursorLayer } from "@/components/cursor-layer"
+import { RoomControls } from "@/components/room-controls"
+import type { RoomLink } from "@/protocol"
+import { rememberRoom } from "@/recent-rooms"
+import { SlideView } from "@/slide-view"
+import { useRoom } from "@/use-room"
+
+type NextSlide = (current: number, last: number) => number
 
 /** Keys the room pages through, so the deck is navigable without a control. */
 const NAVIGATION_KEYS: Record<string, NextSlide> = {
@@ -21,21 +22,21 @@ const NAVIGATION_KEYS: Record<string, NextSlide> = {
   PageUp: (current) => current - 1,
   Home: () => 0,
   End: (_current, last) => last,
-};
+}
 
 const TYPING_SELECTOR =
-  "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='dialog'], [role='menu'], [role='listbox']";
+  "input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='dialog'], [role='menu'], [role='listbox']"
 
-const CONTROL_SELECTOR = "button, a[href], [role='button']";
+const CONTROL_SELECTOR = "button, a[href], [role='button']"
 
 interface RoomViewProps {
-  link: RoomLink;
-  name: string;
-  presentation: PresentationData;
+  link: RoomLink
+  name: string
+  presentation: PresentationData
   /** Deadline from the upload response, used until the room reports its own. */
-  expiresAt: number | null;
-  onExpired: () => void;
-  onExit: () => void;
+  expiresAt: number | null
+  onExpired: () => void
+  onExit: () => void
 }
 
 export function RoomView({
@@ -46,58 +47,58 @@ export function RoomView({
   onExpired,
   onExit,
 }: RoomViewProps) {
-  const room = useRoom(link, name, { expiresAt, onExpired });
-  const deadline = room.expiresAt ?? expiresAt;
-  const stageRef = useRef<HTMLDivElement>(null);
-  const lastSlide = presentation.slides.length - 1;
-  const canNavigate = room.status === "connected";
-  const { navigate, moveCursor } = room;
-  const remembered = useRef(false);
+  const room = useRoom(link, name, { expiresAt, onExpired })
+  const deadline = room.expiresAt ?? expiresAt
+  const stageRef = useRef<HTMLDivElement>(null)
+  const lastSlide = presentation.slides.length - 1
+  const canNavigate = room.status === "connected"
+  const { navigate, moveCursor } = room
+  const remembered = useRef(false)
 
   useEffect(() => {
     if (!canNavigate || deadline === null || room.presentationName === null || remembered.current)
-      return;
-    remembered.current = true;
-    const joinedAt = Date.now();
+      return
+    remembered.current = true
+    const joinedAt = Date.now()
     const entry = {
       ...link,
       name: Array.from(room.presentationName).slice(0, 120).join(""),
       expiresAt: deadline,
-    };
-    void rememberRoom(entry, joinedAt);
-  }, [canNavigate, deadline, room.presentationName, link]);
+    }
+    void rememberRoom(entry, joinedAt)
+  }, [canNavigate, deadline, room.presentationName, link])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (room.status !== "connected") return;
-      const origin = event.target;
-      if (!(origin instanceof HTMLElement) || origin.closest(TYPING_SELECTOR)) return;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
+      if (room.status !== "connected") return
+      const origin = event.target
+      if (!(origin instanceof HTMLElement) || origin.closest(TYPING_SELECTOR)) return
 
-      const next = NAVIGATION_KEYS[event.key];
-      if (!next) return;
+      const next = NAVIGATION_KEYS[event.key]
+      if (!next) return
       // Space already activates a focused control, so it must not also page.
-      if (event.key === " " && origin.closest(CONTROL_SELECTOR)) return;
+      if (event.key === " " && origin.closest(CONTROL_SELECTOR)) return
 
-      event.preventDefault();
-      navigate(Math.min(lastSlide, Math.max(0, next(room.slide, lastSlide))));
-    };
+      event.preventDefault()
+      navigate(Math.min(lastSlide, Math.max(0, next(room.slide, lastSlide))))
+    }
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate, room.slide, room.status, lastSlide]);
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [navigate, room.slide, room.status, lastSlide])
 
   const onStagePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType === "touch" || !document.hasFocus()) return;
-    const stage = stageRef.current;
-    if (!stage) return;
-    const bounds = stage.getBoundingClientRect();
-    if (bounds.width === 0 || bounds.height === 0) return;
+    if (event.pointerType === "touch" || !document.hasFocus()) return
+    const stage = stageRef.current
+    if (!stage) return
+    const bounds = stage.getBoundingClientRect()
+    if (bounds.width === 0 || bounds.height === 0) return
     moveCursor(
       (event.clientX - bounds.left) / bounds.width,
       (event.clientY - bounds.top) / bounds.height,
-    );
-  };
+    )
+  }
 
   const onStagePointerLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
     // Leaving the browser or deactivating its window freezes the last sample.
@@ -107,9 +108,9 @@ export function RoomView({
       !document.hasFocus() ||
       document.visibilityState !== "visible"
     )
-      return;
-    moveCursor(null, null);
-  };
+      return
+    moveCursor(null, null)
+  }
 
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-neutral-950">
@@ -132,7 +133,7 @@ export function RoomView({
       {room.error && (
         <div
           role="alert"
-          className="absolute inset-x-0 top-3 mx-auto w-fit max-w-[calc(100vw-2rem)] rounded-full border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-lg"
+          className="bg-popover text-popover-foreground absolute inset-x-0 top-3 mx-auto w-fit max-w-[calc(100vw-2rem)] rounded-full border px-3 py-1.5 text-sm shadow-lg"
         >
           {room.error}
         </div>
@@ -156,5 +157,5 @@ export function RoomView({
         />
       </div>
     </main>
-  );
+  )
 }

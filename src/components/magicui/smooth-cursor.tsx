@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { useEffect, useId, useRef, type FC } from "react";
-import { m, useReducedMotion, useSpring } from "motion/react";
+import { m, useReducedMotion, useSpring } from "motion/react"
+import { useEffect, useId, useRef, type FC } from "react"
 
 /**
  * Magic UI's sprite and spring physics, driven by remote slide coordinates.
@@ -14,24 +14,24 @@ import { m, useReducedMotion, useSpring } from "motion/react";
  */
 export interface SmoothCursorProps {
   /** Normalized coordinates on the slide; the layer owns cursor presence. */
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  color: string;
+  x: number
+  y: number
+  width: number
+  height: number
+  name: string
+  color: string
   springConfig?: {
-    damping: number;
-    stiffness: number;
-    mass: number;
-    restDelta: number;
-  };
+    damping: number
+    stiffness: number
+    mass: number
+    restDelta: number
+  }
 }
 
-type TimerHandle = ReturnType<typeof setTimeout>;
+type TimerHandle = ReturnType<typeof setTimeout>
 
 const CursorArrow: FC = () => {
-  const filterId = useId();
+  const filterId = useId()
 
   return (
     <svg
@@ -85,8 +85,8 @@ const CursorArrow: FC = () => {
         </filter>
       </defs>
     </svg>
-  );
-};
+  )
+}
 
 export function SmoothCursor({
   x,
@@ -103,64 +103,64 @@ export function SmoothCursor({
   },
 }: SmoothCursorProps) {
   const lastSample = useRef<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    time: number;
-  } | null>(null);
-  const previousAngle = useRef(0);
-  const accumulatedRotation = useRef(0);
-  const squashTimeout = useRef<TimerHandle | undefined>(undefined);
-  const prefersReducedMotion = useReducedMotion();
-  const cursorX = useSpring(x * width, springConfig);
-  const cursorY = useSpring(y * height, springConfig);
-  const rotation = useSpring(0, { ...springConfig, damping: 60, stiffness: 300 });
-  const scale = useSpring(1, { ...springConfig, stiffness: 500, damping: 35 });
+    x: number
+    y: number
+    width: number
+    height: number
+    time: number
+  } | null>(null)
+  const previousAngle = useRef(0)
+  const accumulatedRotation = useRef(0)
+  const squashTimeout = useRef<TimerHandle | undefined>(undefined)
+  const prefersReducedMotion = useReducedMotion()
+  const cursorX = useSpring(x * width, springConfig)
+  const cursorY = useSpring(y * height, springConfig)
+  const rotation = useSpring(0, { ...springConfig, damping: 60, stiffness: 300 })
+  const scale = useSpring(1, { ...springConfig, stiffness: 500, damping: 35 })
 
   useEffect(() => {
-    return () => clearTimeout(squashTimeout.current);
-  }, []);
+    return () => clearTimeout(squashTimeout.current)
+  }, [])
 
   useEffect(() => {
-    const now = performance.now();
-    const previous = lastSample.current;
-    const resized = previous && (previous.width !== width || previous.height !== height);
+    const now = performance.now()
+    const previous = lastSample.current
+    const resized = previous && (previous.width !== width || previous.height !== height)
 
     if (prefersReducedMotion || !previous || resized) {
       // Enter and resize in place, rather than flying in from an obsolete origin.
-      cursorX.jump(x * width);
-      cursorY.jump(y * height);
-      clearTimeout(squashTimeout.current);
-      scale.jump(1);
+      cursorX.jump(x * width)
+      cursorY.jump(y * height)
+      clearTimeout(squashTimeout.current)
+      scale.jump(1)
       if (prefersReducedMotion) {
-        rotation.jump(0);
-        previousAngle.current = 0;
-        accumulatedRotation.current = 0;
+        rotation.jump(0)
+        previousAngle.current = 0
+        accumulatedRotation.current = 0
       }
     } else {
-      cursorX.set(x * width);
-      cursorY.set(y * height);
-      const elapsed = now - previous.time;
-      const dx = (x - previous.x) * width;
-      const dy = (y - previous.y) * height;
+      cursorX.set(x * width)
+      cursorY.set(y * height)
+      const elapsed = now - previous.time
+      const dx = (x - previous.x) * width
+      const dy = (y - previous.y) * height
 
       if (elapsed > 0 && Math.hypot(dx, dy) / elapsed > 0.1) {
-        const angle = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
-        let angleDiff = angle - previousAngle.current;
-        if (angleDiff > 180) angleDiff -= 360;
-        if (angleDiff < -180) angleDiff += 360;
-        accumulatedRotation.current += angleDiff;
-        previousAngle.current = angle;
-        rotation.set(accumulatedRotation.current);
-        scale.set(0.95);
-        clearTimeout(squashTimeout.current);
-        squashTimeout.current = setTimeout(() => scale.set(1), 150);
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI + 90
+        let angleDiff = angle - previousAngle.current
+        if (angleDiff > 180) angleDiff -= 360
+        if (angleDiff < -180) angleDiff += 360
+        accumulatedRotation.current += angleDiff
+        previousAngle.current = angle
+        rotation.set(accumulatedRotation.current)
+        scale.set(0.95)
+        clearTimeout(squashTimeout.current)
+        squashTimeout.current = setTimeout(() => scale.set(1), 150)
       }
     }
 
-    lastSample.current = { x, y, width, height, time: now };
-  }, [x, y, width, height, prefersReducedMotion, cursorX, cursorY, rotation, scale]);
+    lastSample.current = { x, y, width, height, time: now }
+  }, [x, y, width, height, prefersReducedMotion, cursorX, cursorY, rotation, scale])
 
   return (
     <m.div
@@ -189,11 +189,11 @@ export function SmoothCursor({
         <CursorArrow />
       </m.div>
       <span
-        className="absolute left-4 top-3.5 w-max max-w-40 truncate rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
+        className="absolute top-3.5 left-4 w-max max-w-40 truncate rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
         style={{ backgroundColor: color }}
       >
         {name}
       </span>
     </m.div>
-  );
+  )
 }

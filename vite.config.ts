@@ -1,7 +1,7 @@
-import { defineConfig } from "vite-plus";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { cloudflare } from "@cloudflare/vite-plugin";
+import { cloudflare } from "@cloudflare/vite-plugin"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite-plus"
 
 export default defineConfig({
   build: {
@@ -21,4 +21,4 @@ export default defineConfig({
     cache: true,
   },
   plugins: [react(), tailwindcss(), cloudflare()],
-});
+})

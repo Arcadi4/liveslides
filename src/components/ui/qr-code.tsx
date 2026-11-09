@@ -1,14 +1,15 @@
-import { cn } from "@/lib/utils";
-import { encode } from "uqr";
-import { useMemo } from "react";
+import { useMemo } from "react"
+import { encode } from "uqr"
+
+import { cn } from "@/lib/utils"
 
 interface QrCodeProps extends React.ComponentProps<"svg"> {
   /** Text to encode, e.g. the audience link. */
-  value: string;
+  value: string
   /** Error correction level; `M` recovers from ~15% damage, enough for a photographed screen. */
-  ecc?: "L" | "M" | "Q" | "H";
+  ecc?: "L" | "M" | "Q" | "H"
   /** Quiet zone in modules. The QR spec requires at least 4 for reliable scanning. */
-  border?: number;
+  border?: number
 }
 
 /**
@@ -16,28 +17,28 @@ interface QrCodeProps extends React.ComponentProps<"svg"> {
  * code stays readable in dark mode and on projectors with low contrast.
  */
 export function QrCode({ value, ecc = "M", border = 4, className, ...props }: QrCodeProps) {
-  const { size, data } = useMemo(() => encode(value, { ecc, border }), [value, ecc, border]);
+  const { size, data } = useMemo(() => encode(value, { ecc, border }), [value, ecc, border])
 
   // Collapse every row into horizontal runs so the whole symbol is one path instead
   // of up to ~1700 separate rects.
   const path = useMemo(() => {
-    const runs: string[] = [];
+    const runs: string[] = []
     for (let y = 0; y < size; y += 1) {
-      const row = data[y];
-      let x = 0;
+      const row = data[y]
+      let x = 0
       while (x < size) {
         if (!row[x]) {
-          x += 1;
-          continue;
+          x += 1
+          continue
         }
-        let end = x;
-        while (end + 1 < size && row[end + 1]) end += 1;
-        runs.push(`M${x},${y}h${end - x + 1}v1h-${end - x + 1}z`);
-        x = end + 1;
+        let end = x
+        while (end + 1 < size && row[end + 1]) end += 1
+        runs.push(`M${x},${y}h${end - x + 1}v1h-${end - x + 1}z`)
+        x = end + 1
       }
     }
-    return runs.join("");
-  }, [data, size]);
+    return runs.join("")
+  }, [data, size])
 
   return (
     <svg
@@ -51,5 +52,5 @@ export function QrCode({ value, ecc = "M", border = 4, className, ...props }: Qr
       <rect width={size} height={size} fill="white" />
       <path d={path} fill="black" />
     </svg>
-  );
+  )
 }

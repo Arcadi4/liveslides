@@ -1,25 +1,26 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { suggestName } from "@/identity";
-import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
-import { useState } from "react";
-import type { PresentationData } from "@aiden0z/pptx-renderer";
-import { PresentationPreview } from "@/components/presentation-preview";
-import type { RoomLink } from "@/protocol";
-import { cn } from "@/lib/utils";
+import type { PresentationData } from "@aiden0z/pptx-renderer"
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react"
+import { useState } from "react"
+
+import { PresentationPreview } from "@/components/presentation-preview"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { suggestName } from "@/identity"
+import { cn } from "@/lib/utils"
+import type { RoomLink } from "@/protocol"
 
 export interface JoinScreenProps {
-  link: RoomLink;
-  initialRoomName?: string | null;
-  initialExpiresAt?: number | null;
-  deck?: PresentationData | null;
-  onDeckLoaded?: (deck: PresentationData) => void;
-  onJoin: (name: string) => void;
-  onBack?: () => void;
-  isEntering?: boolean;
-  isLeaving?: boolean;
+  link: RoomLink
+  initialRoomName?: string | null
+  initialExpiresAt?: number | null
+  deck?: PresentationData | null
+  onDeckLoaded?: (deck: PresentationData) => void
+  onJoin: (name: string) => void
+  onBack?: () => void
+  isEntering?: boolean
+  isLeaving?: boolean
 }
 
 export function JoinScreen({
@@ -33,7 +34,7 @@ export function JoinScreen({
   isEntering = false,
   isLeaving = false,
 }: JoinScreenProps) {
-  const [name, setName] = useState(suggestName);
+  const [name, setName] = useState(suggestName)
   return (
     <main
       className={cn(
@@ -55,9 +56,9 @@ export function JoinScreen({
           <form
             className="flex flex-col gap-4"
             onSubmit={(event) => {
-              event.preventDefault();
-              const trimmed = name.trim();
-              if (trimmed) onJoin(trimmed);
+              event.preventDefault()
+              const trimmed = name.trim()
+              if (trimmed) onJoin(trimmed)
             }}
           >
             <div className="flex flex-col gap-2">
@@ -105,5 +106,5 @@ export function JoinScreen({
         </CardContent>
       </Card>
     </main>
-  );
+  )
 }
