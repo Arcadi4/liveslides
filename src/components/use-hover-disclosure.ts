@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react"
 
 /** Hover is a preview, so it waits for intent and closes with a small grace.
  *  Mirrors the CSS motion tokens: --duration-micro on the open, and the close
  *  grace stays deliberately longer so a crossing pointer does not dismiss. */
-const HOVER_OPEN_MS = 80;
-const HOVER_CLOSE_MS = 200;
+const HOVER_OPEN_MS = 80
+const HOVER_CLOSE_MS = 200
 
 interface HoverSurfaceHandlers {
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
+  onMouseEnter: () => void
+  onMouseLeave: () => void
 }
 
 interface HoverTriggerHandlers extends HoverSurfaceHandlers {
-  onFocus: () => void;
-  onBlur: () => void;
+  onFocus: () => void
+  onBlur: () => void
   /** Pins the surface open, or unpins and closes it when already pinned. */
-  onClick: (event: MouseEvent) => void;
+  onClick: (event: MouseEvent) => void
   /** Keyboard equivalent of the click, for triggers that are not buttons. */
-  onKeyDown: (event: KeyboardEvent) => void;
+  onKeyDown: (event: KeyboardEvent) => void
 }
 
 export interface HoverDisclosure {
-  open: boolean;
+  open: boolean
   /** Spread onto the trigger; drives preview on hover and focus, pin on click. */
-  trigger: HoverTriggerHandlers;
+  trigger: HoverTriggerHandlers
   /** Spread onto the surface, so moving onto it does not read as leaving. */
-  surface: HoverSurfaceHandlers;
+  surface: HoverSurfaceHandlers
   /** Wire to the surface component's open-state callback. */
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (open: boolean) => void
 }
 
 /**
@@ -38,73 +38,73 @@ export interface HoverDisclosure {
  * open so a deliberate read survives the pointer moving away.
  */
 export function useHoverDisclosure(): HoverDisclosure {
-  const [open, setOpen] = useState(false);
-  const pinned = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [open, setOpen] = useState(false)
+  const pinned = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => () => clearTimeout(timer.current), [])
 
-  const cancelPendingClose = () => clearTimeout(timer.current);
+  const cancelPendingClose = () => clearTimeout(timer.current)
 
   const pin = () => {
-    cancelPendingClose();
+    cancelPendingClose()
     if (open && pinned.current) {
-      pinned.current = false;
-      setOpen(false);
+      pinned.current = false
+      setOpen(false)
     } else {
-      pinned.current = true;
-      setOpen(true);
+      pinned.current = true
+      setOpen(true)
     }
-  };
+  }
 
   return {
     open,
     trigger: {
       onMouseEnter: () => {
-        clearTimeout(timer.current);
+        clearTimeout(timer.current)
         timer.current = setTimeout(() => {
-          pinned.current = false;
-          setOpen(true);
-        }, HOVER_OPEN_MS);
+          pinned.current = false
+          setOpen(true)
+        }, HOVER_OPEN_MS)
       },
       onMouseLeave: () => {
-        cancelPendingClose();
-        if (pinned.current) return;
-        timer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_MS);
+        cancelPendingClose()
+        if (pinned.current) return
+        timer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_MS)
       },
       onFocus: () => {
-        cancelPendingClose();
-        setOpen(true);
+        cancelPendingClose()
+        setOpen(true)
       },
       onBlur: () => {
-        if (pinned.current) return;
-        setOpen(false);
+        if (pinned.current) return
+        setOpen(false)
       },
       onClick: (event) => {
-        event.preventDefault();
-        pin();
+        event.preventDefault()
+        pin()
       },
       onKeyDown: (event) => {
         // Native controls turn Enter/Space into a click of their own, so
         // acting on the key as well would toggle twice.
-        if ((event.target as HTMLElement).closest("button, a[href]")) return;
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        pin();
+        if ((event.target as HTMLElement).closest("button, a[href]")) return
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        pin()
       },
     },
     surface: {
       onMouseEnter: cancelPendingClose,
       onMouseLeave: () => {
-        cancelPendingClose();
-        if (pinned.current) return;
-        timer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_MS);
+        cancelPendingClose()
+        if (pinned.current) return
+        timer.current = setTimeout(() => setOpen(false), HOVER_CLOSE_MS)
       },
     },
     onOpenChange: (next) => {
-      cancelPendingClose();
-      if (!next) pinned.current = false;
-      setOpen(next);
+      cancelPendingClose()
+      if (!next) pinned.current = false
+      setOpen(next)
     },
-  };
+  }
 }
