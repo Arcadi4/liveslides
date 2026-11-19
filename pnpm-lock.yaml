@@ -228,8 +228,8 @@ importers:
         specifier: 2.0.0-beta.v.17
         version: 2.0.0-beta.v.17(@voidzero-dev/vite-plus-core@8.3.8000(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(workerd@1.20261113.1)
       '@cloudflare/workers-types':
-        specifier: ^5.20261115.1
-        version: 5.20261115.1
+        specifier: ^5.20261116.1
+        version: 5.20261116.1
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -402,8 +402,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@cloudflare/workers-types@5.20261115.1':
-    resolution: {integrity: sha512-p0i+8isig1e9qK3KJDGxy6Ng3RTONO6DMFrMrLmpt9/KJRAY5gEfgIm9bGrsQhz9p1PkMGwOx9OHA3I8al/5cw==}
+  '@cloudflare/workers-types@5.20261116.1':
+    resolution: {integrity: sha512-bym4dNT9Hnm+goedLTTTH85T6S4wOJJaOpKgk9MlEGU18/JKsChN+wHvSWUAIy5YVSm6LnuaUu3d3N4K0m8Dtg==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -4121,7 +4121,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261113.1':
     optional: true
 
-  '@cloudflare/workers-types@5.20261115.1': {}
+  '@cloudflare/workers-types@5.20261116.1': {}
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
