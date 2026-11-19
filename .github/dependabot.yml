@@ -8,5 +8,5 @@ updates:
       all:
         patterns:
           - "*"
-        exclude-patterns:
-          - "vite-plus"
+    ignore:
+      - dependency-name: "vite-plus"
