@@ -1,46 +1,47 @@
-import { ShareDialog } from "@/components/share-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ExpiryControl } from "@/components/expiry-control";
-import { ParticipantsControl } from "@/components/participants-control";
-import { SlidePreviewControl } from "@/components/slide-preview-control";
-import type { PresentationData } from "@aiden0z/pptx-renderer";
-import { cn } from "@/lib/utils";
-import type { Participant, RoomLink } from "@/protocol";
-import { Link2Icon, LogOutIcon, Maximize2Icon, Minimize2Icon, UnlinkIcon } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import type { PresentationData } from "@aiden0z/pptx-renderer"
+import { Link2Icon, LogOutIcon, Maximize2Icon, Minimize2Icon, UnlinkIcon } from "lucide-react"
+import { useEffect, useState, type ReactNode } from "react"
 
-type Status = "connecting" | "connected" | "reconnecting" | "offline";
+import { ExpiryControl } from "@/components/expiry-control"
+import { ParticipantsControl } from "@/components/participants-control"
+import { ShareDialog } from "@/components/share-dialog"
+import { SlidePreviewControl } from "@/components/slide-preview-control"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+import type { Participant, RoomLink } from "@/protocol"
+
+type Status = "connecting" | "connected" | "reconnecting" | "offline"
 
 const STATUS_LABEL: Record<Status, string> = {
   connected: "Live",
   connecting: "Connecting…",
   reconnecting: "Reconnecting…",
   offline: "Offline",
-};
+}
 
 const STATUS_DOT: Record<Status, string> = {
   connected: "bg-emerald-500",
   connecting: "bg-amber-500",
   reconnecting: "bg-amber-500",
   offline: "bg-destructive",
-};
+}
 
 const STATUS_HINT: Record<Status, string> = {
   connected: "Connected to the room",
   connecting: "Opening the room connection",
   reconnecting: "Lost the connection, retrying",
   offline: "No connection to the room. Slide changes are paused.",
-};
+}
 
 interface IconControlProps {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: ReactNode;
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  children: ReactNode
 }
 
 function IconControl({ label, onClick, disabled, children }: IconControlProps) {
@@ -60,23 +61,23 @@ function IconControl({ label, onClick, disabled, children }: IconControlProps) {
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
-  );
+  )
 }
 
 interface RoomControlsProps {
-  status: Status;
-  participants: Participant[];
-  self: Participant | undefined;
-  slide: number;
-  hostSlide: number;
-  presentation: PresentationData;
-  link: RoomLink;
-  expiresAt: number | null;
-  canNavigate: boolean;
-  onNavigate: (slide: number) => void;
-  onDetach: () => void;
-  onFollow: () => void;
-  onExit: () => void;
+  status: Status
+  participants: Participant[]
+  self: Participant | undefined
+  slide: number
+  hostSlide: number
+  presentation: PresentationData
+  link: RoomLink
+  expiresAt: number | null
+  canNavigate: boolean
+  onNavigate: (slide: number) => void
+  onDetach: () => void
+  onFollow: () => void
+  onExit: () => void
 }
 
 export function RoomControls({
@@ -94,24 +95,24 @@ export function RoomControls({
   onFollow,
   onExit,
 }: RoomControlsProps) {
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
-    const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", sync);
-    return () => document.removeEventListener("fullscreenchange", sync);
-  }, []);
+    const sync = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener("fullscreenchange", sync)
+    return () => document.removeEventListener("fullscreenchange", sync)
+  }, [])
 
   const toggleFullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void document.documentElement.requestFullscreen().catch(() => {});
-  };
+    if (document.fullscreenElement) void document.exitFullscreen()
+    else void document.documentElement.requestFullscreen().catch(() => {})
+  }
 
-  const detached = self?.detached ?? false;
+  const detached = self?.detached ?? false
   const deadline =
     expiresAt === null
       ? null
-      : new Date(expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+      : new Date(expiresAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
 
   return (
     <Card className="pointer-events-auto relative z-60 flex w-fit max-w-[calc(100vw-1rem)] flex-row flex-wrap items-center gap-1 rounded-full p-1 shadow-lg">
@@ -178,5 +179,5 @@ export function RoomControls({
         <LogOutIcon aria-hidden="true" />
       </IconControl>
     </Card>
-  );
+  )
 }

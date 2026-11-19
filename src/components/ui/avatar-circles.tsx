@@ -1,13 +1,13 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 interface Avatar {
-  id: string;
-  imageUrl: string;
+  id: string
+  imageUrl: string
 }
 interface AvatarCirclesProps {
-  className?: string;
-  numPeople?: number;
-  avatarUrls: Avatar[];
+  className?: string
+  numPeople?: number
+  avatarUrls: Avatar[]
 }
 
 /** Non-interactive avatars and overflow count; the enclosing control owns activation. */
@@ -31,5 +31,5 @@ export const AvatarCircles = ({ numPeople, className, avatarUrls }: AvatarCircle
         </span>
       )}
     </span>
-  );
-};
+  )
+}

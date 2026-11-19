@@ -1,16 +1,16 @@
-import { TransitionPopover } from "@/components/transition-popover";
-import { useHoverDisclosure } from "@/components/use-hover-disclosure";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { AvatarCircles } from "@/components/ui/avatar-circles";
-import type { Participant } from "@/protocol";
+import { TransitionPopover } from "@/components/transition-popover"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { AvatarCircles } from "@/components/ui/avatar-circles"
+import { Badge } from "@/components/ui/badge"
+import { useHoverDisclosure } from "@/components/use-hover-disclosure"
+import type { Participant } from "@/protocol"
 
 /** Circles rendered before the rest collapse into MagicUI's overflow count. */
-const MAX_CIRCLES = 3;
+const MAX_CIRCLES = 3
 
 /** Two-letter monogram: rooms carry no avatar images, only names and colours. */
 function participantInitials(name: string): string {
-  return name.trim().slice(0, 2).toUpperCase() || "?";
+  return name.trim().slice(0, 2).toUpperCase() || "?"
 }
 
 /**
@@ -18,12 +18,12 @@ function participantInitials(name: string): string {
  * participant's initials on their colour — the same mark the roster shows.
  */
 function monogramUrl(participant: Participant): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="${participant.color}"/><text x="24" y="24" dy="0.36em" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#fff">${participantInitials(participant.name)}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="${participant.color}"/><text x="24" y="24" dy="0.36em" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="#fff">${participantInitials(participant.name)}</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
 interface ParticipantsControlProps {
-  participants: Participant[];
+  participants: Participant[]
 }
 
 /**
@@ -32,8 +32,8 @@ interface ParticipantsControlProps {
  * additional button chrome.
  */
 export function ParticipantsControl({ participants }: ParticipantsControlProps) {
-  const disclosure = useHoverDisclosure();
-  const visible = participants.slice(0, MAX_CIRCLES);
+  const disclosure = useHoverDisclosure()
+  const visible = participants.slice(0, MAX_CIRCLES)
 
   return (
     <TransitionPopover
@@ -47,13 +47,13 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
         <button
           type="button"
           aria-label={`Participants, ${participants.length} in the room`}
-          className="t-avatar rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="t-avatar focus-visible:ring-ring/50 rounded-full outline-none focus-visible:ring-[3px]"
           {...disclosure.trigger}
         >
           <AvatarCircles
             // Registry defaults are 40px circles stacked 16px apart; the control
             // bar needs a denser row.
-            className="-space-x-2 [&>span]:size-6 [&_img]:size-6"
+            className="-space-x-2 [&_img]:size-6 [&>span]:size-6"
             numPeople={participants.length - visible.length}
             avatarUrls={visible.map((participant) => ({
               id: participant.id,
@@ -63,7 +63,7 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
         </button>
       }
     >
-      <p className="px-2 py-1.5 text-xs text-muted-foreground">
+      <p className="text-muted-foreground px-2 py-1.5 text-xs">
         {participants.length === 1
           ? "1 person in the room"
           : `${participants.length} people in the room`}
@@ -95,5 +95,5 @@ export function ParticipantsControl({ participants }: ParticipantsControlProps) 
         ))}
       </ul>
     </TransitionPopover>
-  );
+  )
 }

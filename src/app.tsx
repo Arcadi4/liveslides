@@ -1,29 +1,30 @@
-import { JoinScreen } from "@/components/join-screen";
-import { RoomView } from "@/components/room-view";
-import { ShareScreen, type SharedDeck } from "@/components/share-screen";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { loadDeck, type PreparedDeck } from "@/crypto";
-import { rememberName } from "@/identity";
-import { readRoomLink, roomUrl } from "@/links";
-import type { RecentRoom } from "@/recent-rooms";
-import type { RoomLink } from "@/protocol";
-import { LoaderCircleIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { LoaderCircleIcon } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 
-const ROOM_PATH = "/r/";
+import { JoinScreen } from "@/components/join-screen"
+import { RoomView } from "@/components/room-view"
+import { ShareScreen, type SharedDeck } from "@/components/share-screen"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { loadDeck, type PreparedDeck } from "@/crypto"
+import { rememberName } from "@/identity"
+import { readRoomLink, roomUrl } from "@/links"
+import type { RoomLink } from "@/protocol"
+import type { RecentRoom } from "@/recent-rooms"
+
+const ROOM_PATH = "/r/"
 
 /**
  * Swap duration for the Home ↔ Join page transition, in ms. Kept in lockstep
  * with --home-transition-dur in style.css: the JS timer unmounts one surface
  * exactly as its animation ends, so the two must agree.
  */
-const HOME_TRANSITION_MS = 250;
+const HOME_TRANSITION_MS = 250
 
 /** A room-looking path that does not parse means the link was truncated. */
 function isBrokenRoomPath() {
-  return location.pathname.startsWith(ROOM_PATH) && readRoomLink() === null;
+  return location.pathname.startsWith(ROOM_PATH) && readRoomLink() === null
 }
 
 function HomeLink() {
@@ -31,7 +32,7 @@ function HomeLink() {
     <Button asChild variant="outline" className="w-full">
       <a href="/">Back to start</a>
     </Button>
-  );
+  )
 }
 
 function NoticeScreen({ title, detail }: { title: string; detail: string }) {
@@ -47,77 +48,75 @@ function NoticeScreen({ title, detail }: { title: string; detail: string }) {
         </CardContent>
       </Card>
     </main>
-  );
+  )
 }
 
 function LoadingScreen() {
   return (
     <main
       aria-live="polite"
-      className="flex min-h-dvh flex-col items-center justify-center gap-3 p-4 text-sm text-muted-foreground"
+      className="text-muted-foreground flex min-h-dvh flex-col items-center justify-center gap-3 p-4 text-sm"
     >
       <LoaderCircleIcon className="size-5 animate-spin" aria-hidden="true" />
       Decrypting the presentation…
     </main>
-  );
+  )
 }
 
 function LiveSlides() {
-  const [link, setLink] = useState<RoomLink | null>(() => readRoomLink());
-  const [name, setName] = useState<string | null>(null);
-  const [deck, setDeck] = useState<PreparedDeck["presentation"] | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = useState<number | null>(null);
-  const [expired, setExpired] = useState(false);
-  const [isNavigatingToRoom, setIsNavigatingToRoom] = useState(false);
-  const [navigatingFromHome, setNavigatingFromHome] = useState(false);
-  const [leavingToHome, setLeavingToHome] = useState(false);
-  const [enteringHome, setEnteringHome] = useState(false);
-  const [initialMeta, setInitialMeta] = useState<{ name?: string; expiresAt?: number } | null>(
-    null,
-  );
-  const enteredFromShare = useRef(false);
-  const transitionTimerRef = useRef<number | null>(null);
+  const [link, setLink] = useState<RoomLink | null>(() => readRoomLink())
+  const [name, setName] = useState<string | null>(null)
+  const [deck, setDeck] = useState<PreparedDeck["presentation"] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState<number | null>(null)
+  const [expired, setExpired] = useState(false)
+  const [isNavigatingToRoom, setIsNavigatingToRoom] = useState(false)
+  const [navigatingFromHome, setNavigatingFromHome] = useState(false)
+  const [leavingToHome, setLeavingToHome] = useState(false)
+  const [enteringHome, setEnteringHome] = useState(false)
+  const [initialMeta, setInitialMeta] = useState<{ name?: string; expiresAt?: number } | null>(null)
+  const enteredFromShare = useRef(false)
+  const transitionTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
-      clearTimeout(transitionTimerRef.current ?? undefined);
-    };
-  }, []);
+      clearTimeout(transitionTimerRef.current ?? undefined)
+    }
+  }, [])
 
   useEffect(() => {
     const onPopState = () => {
-      enteredFromShare.current = false;
-      setLink(readRoomLink());
-      setName(null);
-      setExpiresAt(null);
-      setExpired(false);
-      setDeck(null);
-      setInitialMeta(null);
-      setIsNavigatingToRoom(false);
-      setNavigatingFromHome(false);
-      setLeavingToHome(false);
-      setEnteringHome(false);
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+      enteredFromShare.current = false
+      setLink(readRoomLink())
+      setName(null)
+      setExpiresAt(null)
+      setExpired(false)
+      setDeck(null)
+      setInitialMeta(null)
+      setIsNavigatingToRoom(false)
+      setNavigatingFromHome(false)
+      setLeavingToHome(false)
+      setEnteringHome(false)
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [])
 
   useEffect(() => {
-    if (!link || !name || deck || expired) return;
-    const controller = new AbortController();
-    setLoadError(null);
+    if (!link || !name || deck || expired) return
+    const controller = new AbortController()
+    setLoadError(null)
     loadDeck(link, controller.signal)
       .then((loaded) => {
-        if (!controller.signal.aborted) setDeck(loaded);
+        if (!controller.signal.aborted) setDeck(loaded)
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) {
-          setLoadError(cause instanceof Error ? cause.message : "Couldn't open this presentation.");
+          setLoadError(cause instanceof Error ? cause.message : "Couldn't open this presentation.")
         }
-      });
-    return () => controller.abort();
-  }, [link, name, deck, expired]);
+      })
+    return () => controller.abort()
+  }, [link, name, deck, expired])
 
   const onShared = ({
     link: shared,
@@ -125,36 +124,36 @@ function LiveSlides() {
     presentation,
     name: hostName,
   }: SharedDeck) => {
-    history.pushState(null, "", roomUrl(shared));
-    enteredFromShare.current = true;
-    setLink(shared);
-    setName(hostName);
-    setLoadError(null);
-    setDeck(presentation);
-    setExpiresAt(deadline);
-    setExpired(false);
-  };
+    history.pushState(null, "", roomUrl(shared))
+    enteredFromShare.current = true
+    setLink(shared)
+    setName(hostName)
+    setLoadError(null)
+    setDeck(presentation)
+    setExpiresAt(deadline)
+    setExpired(false)
+  }
 
   /** Terminal expiry: drop the decrypted deck so nothing keeps rendering or reconnecting. */
   const onExpired = () => {
-    setDeck(null);
-    setExpired(true);
-  };
+    setDeck(null)
+    setExpired(true)
+  }
 
   const leaveRoom = () => {
-    if (enteredFromShare.current) history.back();
-    else history.replaceState(null, "", "/");
-    enteredFromShare.current = false;
-    setLink(null);
-    setName(null);
-    setDeck(null);
-    setExpiresAt(null);
-    setExpired(false);
-    setInitialMeta(null);
-    setIsNavigatingToRoom(false);
-    setNavigatingFromHome(false);
-    setLeavingToHome(false);
-  };
+    if (enteredFromShare.current) history.back()
+    else history.replaceState(null, "", "/")
+    enteredFromShare.current = false
+    setLink(null)
+    setName(null)
+    setDeck(null)
+    setExpiresAt(null)
+    setExpired(false)
+    setInitialMeta(null)
+    setIsNavigatingToRoom(false)
+    setNavigatingFromHome(false)
+    setLeavingToHome(false)
+  }
 
   /**
    * Join → Home. The join form animates out, then the home surfaces animate in
@@ -162,49 +161,45 @@ function LiveSlides() {
    * home out before swapping to the join page.
    */
   const backToHome = () => {
-    if (leavingToHome) return;
-    setLeavingToHome(true);
-    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0
-      : HOME_TRANSITION_MS;
+    if (leavingToHome) return
+    setLeavingToHome(true)
+    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : HOME_TRANSITION_MS
     transitionTimerRef.current = setTimeout(() => {
-      setEnteringHome(true);
-      leaveRoom();
-      transitionTimerRef.current = setTimeout(() => setEnteringHome(false), duration);
-    }, duration);
-  };
+      setEnteringHome(true)
+      leaveRoom()
+      transitionTimerRef.current = setTimeout(() => setEnteringHome(false), duration)
+    }, duration)
+  }
 
   const handleSelectRecentRoom = (room: RecentRoom) => {
-    if (isNavigatingToRoom) return;
-    setIsNavigatingToRoom(true);
-    setInitialMeta({ name: room.name, expiresAt: room.expiresAt });
-    setExpiresAt(room.expiresAt);
+    if (isNavigatingToRoom) return
+    setIsNavigatingToRoom(true)
+    setInitialMeta({ name: room.name, expiresAt: room.expiresAt })
+    setExpiresAt(room.expiresAt)
 
     // Preload the deck immediately during the fade out transition
-    const controller = new AbortController();
+    const controller = new AbortController()
     loadDeck(room, controller.signal)
       .then((loaded) => setDeck(loaded))
-      .catch(() => {});
+      .catch(() => {})
 
-    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches
-      ? 0
-      : HOME_TRANSITION_MS;
+    const duration = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : HOME_TRANSITION_MS
 
     transitionTimerRef.current = setTimeout(() => {
-      history.pushState(null, "", roomUrl(room));
-      setLink(room);
-      setIsNavigatingToRoom(false);
-      setNavigatingFromHome(true);
+      history.pushState(null, "", roomUrl(room))
+      setLink(room)
+      setIsNavigatingToRoom(false)
+      setNavigatingFromHome(true)
 
       transitionTimerRef.current = setTimeout(() => {
-        setNavigatingFromHome(false);
-      }, duration);
-    }, duration);
-  };
+        setNavigatingFromHome(false)
+      }, duration)
+    }, duration)
+  }
   const join = (chosen: string) => {
-    rememberName(chosen);
-    setName(chosen);
-  };
+    rememberName(chosen)
+    setName(chosen)
+  }
 
   if (!link) {
     return isBrokenRoomPath() ? (
@@ -219,11 +214,11 @@ function LiveSlides() {
         fadeOut={isNavigatingToRoom}
         entering={enteringHome}
       />
-    );
+    )
   }
 
   if (loadError) {
-    return <NoticeScreen title="Couldn't open this presentation" detail={loadError} />;
+    return <NoticeScreen title="Couldn't open this presentation" detail={loadError} />
   }
 
   if (expired) {
@@ -232,7 +227,7 @@ function LiveSlides() {
         title="This presentation has expired or is unavailable"
         detail="This room is no longer available. Ask the host to share the presentation again."
       />
-    );
+    )
   }
 
   if (!name) {
@@ -248,9 +243,9 @@ function LiveSlides() {
         isEntering={navigatingFromHome}
         isLeaving={leavingToHome}
       />
-    );
+    )
   }
-  if (!deck) return <LoadingScreen />;
+  if (!deck) return <LoadingScreen />
 
   return (
     <RoomView
@@ -261,7 +256,7 @@ function LiveSlides() {
       onExpired={onExpired}
       onExit={leaveRoom}
     />
-  );
+  )
 }
 
 export function App() {
@@ -269,5 +264,5 @@ export function App() {
     <TooltipProvider>
       <LiveSlides />
     </TooltipProvider>
-  );
+  )
 }
