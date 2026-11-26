@@ -1,4 +1,7 @@
-import { Button } from "@/components/ui/button";
+import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react"
+import { useEffect, useState } from "react"
+
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -6,29 +9,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { QrCode } from "@/components/ui/qr-code";
-import { roomUrl } from "@/links";
-import type { RoomLink } from "@/protocol";
-import { CheckIcon, CopyIcon, Share2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { QrCode } from "@/components/ui/qr-code"
+import { roomUrl } from "@/links"
+import type { RoomLink } from "@/protocol"
 
 interface LinkRowProps {
-  id: string;
-  label: string;
-  hint: string;
-  url: string;
+  id: string
+  label: string
+  hint: string
+  url: string
 }
 
 function LinkRow({ id, label, hint, url }: LinkRowProps) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!copied) return;
-    const timeout = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timeout);
-  }, [copied]);
+    if (!copied) return
+    const timeout = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(timeout)
+  }, [copied])
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -39,7 +40,7 @@ function LinkRow({ id, label, hint, url }: LinkRowProps) {
           readOnly
           value={url}
           onFocus={(event) => event.target.select()}
-          className="min-w-0 flex-1 truncate rounded-md border bg-muted/40 px-2.5 py-1.5 font-mono text-xs text-muted-foreground"
+          className="bg-muted/40 text-muted-foreground min-w-0 flex-1 truncate rounded-md border px-2.5 py-1.5 font-mono text-xs"
         />
         <Button
           type="button"
@@ -49,7 +50,7 @@ function LinkRow({ id, label, hint, url }: LinkRowProps) {
           // swapped icons now sit one level deeper, so match on any descendant.
           className="has-[_svg]:px-2.5"
           onClick={() => {
-            void navigator.clipboard.writeText(url).then(() => setCopied(true));
+            void navigator.clipboard.writeText(url).then(() => setCopied(true))
           }}
         >
           {/* The icon and the label each cross-fade between two stacked
@@ -98,19 +99,19 @@ function LinkRow({ id, label, hint, url }: LinkRowProps) {
           </span>
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">{hint}</p>
+      <p className="text-muted-foreground text-xs">{hint}</p>
     </div>
-  );
+  )
 }
 
 interface ShareDialogProps {
-  link: RoomLink;
+  link: RoomLink
   /** Formatted deadline of the room this link opens, or null while it is unknown. */
-  deadline: string | null;
+  deadline: string | null
 }
 
 export function ShareDialog({ link, deadline }: ShareDialogProps) {
-  const audienceUrl = roomUrl({ roomId: link.roomId, secret: link.secret });
+  const audienceUrl = roomUrl({ roomId: link.roomId, secret: link.secret })
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -144,7 +145,7 @@ export function ShareDialog({ link, deadline }: ShareDialogProps) {
             )}
 
             {deadline && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Both links will stop working at {deadline}.
               </p>
             )}
@@ -155,10 +156,10 @@ export function ShareDialog({ link, deadline }: ShareDialogProps) {
               className="size-40 rounded-md border p-1.5"
               aria-label={`QR code for the audience link ${audienceUrl}`}
             />
-            <p className="text-xs text-muted-foreground">Scan to join as a viewer</p>
+            <p className="text-muted-foreground text-xs">Scan to join as a viewer</p>
           </div>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

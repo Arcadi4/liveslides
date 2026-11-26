@@ -1,8 +1,9 @@
-"use client";
+"use client"
 
-import { cloneElement, useLayoutEffect, useState, type ReactElement, type ReactNode } from "react";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cloneElement, useLayoutEffect, useState, type ReactElement, type ReactNode } from "react"
+
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 /**
  * Popover surface animated with transitions.dev's menu dropdown: it grows out
@@ -23,31 +24,31 @@ type Origin =
   | "top-right"
   | "bottom-left"
   | "bottom-center"
-  | "bottom-right";
+  | "bottom-right"
 
 /** Disclosure attributes the popover stamps onto its trigger element. */
 interface TriggerAria {
-  "aria-expanded"?: boolean;
-  "aria-haspopup"?: "dialog";
-  "data-state"?: "open" | "closed";
+  "aria-expanded"?: boolean
+  "aria-haspopup"?: "dialog"
+  "data-state"?: "open" | "closed"
 }
 
 interface TransitionPopoverProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
   /** Single element the surface anchors to and opens from. */
-  trigger: ReactElement<TriggerAria>;
-  children: ReactNode;
+  trigger: ReactElement<TriggerAria>
+  children: ReactNode
   /** Corner the surface grows out of, relative to the trigger. */
-  origin?: Origin;
-  align?: "start" | "center" | "end";
-  side?: "top" | "bottom";
-  sideOffset?: number;
-  className?: string;
-  motion?: "dropdown" | "panel";
+  origin?: Origin
+  align?: "start" | "center" | "end"
+  side?: "top" | "bottom"
+  sideOffset?: number
+  className?: string
+  motion?: "dropdown" | "panel"
   /** Kept outside the animated surface so backdrop filters can sample the page. */
-  backdrop?: ReactNode;
-  contentProps?: React.ComponentProps<typeof PopoverContent>;
+  backdrop?: ReactNode
+  contentProps?: React.ComponentProps<typeof PopoverContent>
 }
 
 export function TransitionPopover({
@@ -64,34 +65,34 @@ export function TransitionPopover({
   backdrop,
   contentProps,
 }: TransitionPopoverProps) {
-  const [phase, setPhase] = useState<"closed" | "opening" | "open" | "closing">("closed");
-  const shown = open && phase === "open";
-  const mounted = open || phase !== "closed";
+  const [phase, setPhase] = useState<"closed" | "opening" | "open" | "closing">("closed")
+  const shown = open && phase === "open"
+  const mounted = open || phase !== "closed"
 
   useLayoutEffect(() => {
     if (open) {
-      setPhase("opening");
+      setPhase("opening")
       // Paint the visible rest state before applying the open state. Removing
       // `hidden` and applying the open class together skips the CSS transition.
       let frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => setPhase("open"));
-      });
-      return () => cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => setPhase("open"))
+      })
+      return () => cancelAnimationFrame(frame)
     }
-    setPhase((current) => (current === "closed" ? current : "closing"));
+    setPhase((current) => (current === "closed" ? current : "closing"))
     const duration = getComputedStyle(document.documentElement)
       .getPropertyValue(motion === "panel" ? "--panel-close-dur" : "--dropdown-close-dur")
-      .trim();
+      .trim()
     // Production CSS can minify `350ms` to `.35s`; timers always need milliseconds.
-    const closeMs = parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1000);
+    const closeMs = parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1000)
     // transitionend owns normal cleanup. Keep a fallback for interrupted
     // transitions, and leave a frame margin so a late paint cannot truncate exit.
     const timeout = setTimeout(
       () => setPhase("closed"),
       matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : closeMs + 50,
-    );
-    return () => clearTimeout(timeout);
-  }, [open, motion]);
+    )
+    return () => clearTimeout(timeout)
+  }, [open, motion])
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -123,7 +124,7 @@ export function TransitionPopover({
         )}
         {...contentProps}
         onTransitionEnd={(event) => {
-          contentProps?.onTransitionEnd?.(event);
+          contentProps?.onTransitionEnd?.(event)
           if (
             !open &&
             phase === "closing" &&
@@ -131,7 +132,7 @@ export function TransitionPopover({
             event.target instanceof Element &&
             event.target.matches(motion === "panel" ? ".t-panel-slide" : ".t-dropdown")
           ) {
-            setPhase("closed");
+            setPhase("closed")
           }
         }}
       >
@@ -146,5 +147,5 @@ export function TransitionPopover({
           ))}
       </PopoverContent>
     </Popover>
-  );
+  )
 }

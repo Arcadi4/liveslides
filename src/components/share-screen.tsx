@@ -1,41 +1,42 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RecentPresentations } from "@/components/recent-presentations";
-import type { RecentRoom } from "@/recent-rooms";
-import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto";
-import { rememberName, suggestName } from "@/identity";
-import { cn } from "@/lib/utils";
-import { MAX_FILE_BYTES, MAX_TTL_SECONDS, type RoomLink } from "@/protocol";
-import { SlideView } from "@/slide-view";
-import { FileUpIcon, LoaderCircleIcon, PresentationIcon } from "lucide-react";
-import { useRef, useState, type DragEvent } from "react";
+import { FileUpIcon, LoaderCircleIcon, PresentationIcon } from "lucide-react"
+import { useRef, useState, type DragEvent } from "react"
+
+import { RecentPresentations } from "@/components/recent-presentations"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { prepareDeck, shareDeck, type PreparedDeck } from "@/crypto"
+import { rememberName, suggestName } from "@/identity"
+import { cn } from "@/lib/utils"
+import { MAX_FILE_BYTES, MAX_TTL_SECONDS, type RoomLink } from "@/protocol"
+import type { RecentRoom } from "@/recent-rooms"
+import { SlideView } from "@/slide-view"
 
 const TTL_CHOICES = [
   { label: "8 hours", seconds: 8 * 60 * 60 },
   { label: "7 days", seconds: 7 * 24 * 60 * 60 },
   { label: "30 days", seconds: MAX_TTL_SECONDS },
-] as const;
+] as const
 
-const DEFAULT_TTL_SECONDS = 8 * 60 * 60;
+const DEFAULT_TTL_SECONDS = 8 * 60 * 60
 
 export interface SharedDeck {
-  link: RoomLink;
+  link: RoomLink
   /** Deadline the server fixed when it accepted the upload. */
-  expiresAt: number;
-  presentation: PreparedDeck["presentation"];
-  name: string;
+  expiresAt: number
+  presentation: PreparedDeck["presentation"]
+  name: string
 }
 
-type Phase = "idle" | "preparing" | "uploading";
+type Phase = "idle" | "preparing" | "uploading"
 
 interface ShareScreenProps {
-  onShared: (shared: SharedDeck) => void;
-  onSelectRecentRoom?: (room: RecentRoom) => void;
-  fadeOut?: boolean;
-  entering?: boolean;
+  onShared: (shared: SharedDeck) => void
+  onSelectRecentRoom?: (room: RecentRoom) => void
+  fadeOut?: boolean
+  entering?: boolean
 }
 
 function ShareActions({
@@ -44,12 +45,12 @@ function ShareActions({
   slideCount,
   onShare,
 }: {
-  phase: Phase;
-  disabled: boolean;
-  slideCount?: number;
-  onShare: () => void;
+  phase: Phase
+  disabled: boolean
+  slideCount?: number
+  onShare: () => void
 }) {
-  const uploading = phase === "uploading";
+  const uploading = phase === "uploading"
 
   return (
     <div className="flex items-center gap-3">
@@ -61,7 +62,7 @@ function ShareActions({
         )}
         {uploading ? "Uploading…" : "Share"}
       </Button>
-      <span aria-live="polite" className="text-xs text-muted-foreground">
+      <span aria-live="polite" className="text-muted-foreground text-xs">
         {phase === "preparing"
           ? "Preparing and encrypting…"
           : uploading
@@ -71,7 +72,7 @@ function ShareActions({
               : ""}
       </span>
     </div>
-  );
+  )
 }
 
 export function ShareScreen({
@@ -80,60 +81,60 @@ export function ShareScreen({
   fadeOut = false,
   entering = false,
 }: ShareScreenProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [deck, setDeck] = useState<PreparedDeck | null>(null);
-  const [name, setName] = useState(suggestName);
-  const [ttlSeconds, setTtlSeconds] = useState<number>(DEFAULT_TTL_SECONDS);
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [fileLabel, setFileLabel] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const [deck, setDeck] = useState<PreparedDeck | null>(null)
+  const [name, setName] = useState(suggestName)
+  const [ttlSeconds, setTtlSeconds] = useState<number>(DEFAULT_TTL_SECONDS)
+  const [phase, setPhase] = useState<Phase>("idle")
+  const [error, setError] = useState<string | null>(null)
+  const [fileLabel, setFileLabel] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const select = async (file: File) => {
-    setError(null);
-    setFileLabel(`${file.name} · ${(file.size / (1024 * 1024)).toFixed(1)} MB`);
-    setPhase("preparing");
+    setError(null)
+    setFileLabel(`${file.name} · ${(file.size / (1024 * 1024)).toFixed(1)} MB`)
+    setPhase("preparing")
     try {
-      setDeck(await prepareDeck(file));
+      setDeck(await prepareDeck(file))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Couldn't read that deck.");
+      setError(cause instanceof Error ? cause.message : "Couldn't read that deck.")
     } finally {
-      setPhase("idle");
+      setPhase("idle")
     }
-  };
+  }
 
   const share = async () => {
-    if (!deck || !name.trim()) return;
-    setError(null);
-    setPhase("uploading");
+    if (!deck || !name.trim()) return
+    setError(null)
+    setPhase("uploading")
     try {
-      const room = await shareDeck(deck, ttlSeconds);
-      rememberName(name.trim());
+      const room = await shareDeck(deck, ttlSeconds)
+      rememberName(name.trim())
       onShared({
         link: room,
         expiresAt: room.expiresAt,
         presentation: deck.presentation,
         name: name.trim(),
-      });
+      })
     } catch (cause) {
       setError(
         cause instanceof Error
           ? `Couldn't upload the slide: ${cause.message}`
           : "Couldn't upload the slide. Check your connection and try again.",
-      );
-      setPhase("idle");
+      )
+      setPhase("idle")
     }
-  };
+  }
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    const file = event.dataTransfer.files[0];
-    if (file) void select(file);
-  };
+    event.preventDefault()
+    setDragging(false)
+    const file = event.dataTransfer.files[0]
+    if (file) void select(file)
+  }
 
-  const busy = phase !== "idle";
+  const busy = phase !== "idle"
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 p-4 sm:p-8 lg:flex-row">
@@ -153,8 +154,8 @@ export function ShareScreen({
         <CardContent className="flex flex-col gap-4">
           <div
             onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
+              event.preventDefault()
+              setDragging(true)
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
@@ -175,7 +176,7 @@ export function ShareScreen({
               ) : (
                 <FileUpIcon className="size-5" aria-hidden="true" />
               )}
-              <span className="font-medium text-foreground">Choose a .pptx</span>
+              <span className="text-foreground font-medium">Choose a .pptx</span>
               <span>
                 {fileLabel ?? `or drop it here · up to ${MAX_FILE_BYTES / 1024 / 1024} MB`}
               </span>
@@ -186,9 +187,9 @@ export function ShareScreen({
               accept=".pptx"
               className="hidden"
               onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void select(file);
-                event.target.value = "";
+                const file = event.target.files?.[0]
+                if (file) void select(file)
+                event.target.value = ""
               }}
             />
           </div>
@@ -220,7 +221,7 @@ export function ShareScreen({
               value={ttlSeconds}
               disabled={busy}
               onChange={(event) => setTtlSeconds(Number(event.target.value))}
-              className="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30"
+              className="border-input focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
             >
               {TTL_CHOICES.map((choice) => (
                 <option key={choice.seconds} value={choice.seconds}>
@@ -231,7 +232,7 @@ export function ShareScreen({
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-destructive text-sm">
               {error}
             </p>
           )}
@@ -250,5 +251,5 @@ export function ShareScreen({
         entering={entering}
       />
     </main>
-  );
+  )
 }

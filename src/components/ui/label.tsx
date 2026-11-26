@@ -1,6 +1,7 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { Label as LabelPrimitive } from "radix-ui";
+import { Label as LabelPrimitive } from "radix-ui"
+import * as React from "react"
+
+import { cn } from "@/lib/utils"
 
 function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   return (
@@ -12,7 +13,7 @@ function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimiti
       )}
       {...props}
     />
-  );
+  )
 }
 
-export { Label };
+export { Label }
